@@ -95,7 +95,7 @@ html, body {
   position: relative; z-index: 1;
   display: grid; grid-template-columns: 1fr 1fr;
   gap: 2rem; width: 100%; max-width: 1100px;
-  padding: 1.5rem 2rem 5rem;
+  padding: 1.5rem 5rem 5rem; /* 5rem sides = clears the 48px nav arrow + gap */
   height: 100%; align-items: center;
 }
 .page-layout.reverse { direction: rtl; }
@@ -118,23 +118,42 @@ blockquote {
   font-style: italic; font-size: 1rem; color: var(--gold-lt);
 }
 
-/* ── DESKTOP NAV ── */
+/* ── STORY NAV — center-left and center-right ── */
 .nav-bar {
-  position: fixed; bottom: 1.4rem; right: 2rem; z-index: 180;
-  display: flex; gap: 0.7rem; align-items: center;
-  background: rgba(10,5,20,0.75); padding: 0.45rem 0.75rem;
-  border-radius: 8px; backdrop-filter: blur(6px);
-  border: 1px solid rgba(201,146,42,0.14);
+  position: fixed;
+  top: 50%; transform: translateY(-50%);
+  z-index: 180;
+  display: flex;
+  pointer-events: none;
+  width: 100%;
+  justify-content: space-between;
+  padding: 0 0.6rem;
 }
 .btn-nav {
-  font-family: 'Cinzel', serif; font-size: 0.76rem; letter-spacing: 0.1em;
-  padding: 0.42rem 0.95rem; background: transparent;
-  color: rgba(201,146,42,0.7); border: 1px solid rgba(201,146,42,0.28);
-  border-radius: 4px; cursor: pointer; transition: all 0.2s;
+  font-family: 'Cinzel Decorative', serif;
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  color: rgba(201,146,42,0.5);
+  background: rgba(10,5,20,0.45);
+  border: 1px solid rgba(201,146,42,0.18);
+  border-radius: 50%;
+  width: 48px; height: 48px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.2s;
   -webkit-tap-highlight-color: transparent;
+  line-height: 1; padding: 0;
+  backdrop-filter: blur(4px);
+  pointer-events: all;
 }
-.btn-nav:hover, .btn-nav:active { background: rgba(201,146,42,0.12); color: var(--gold-lt); border-color: var(--gold); }
-.btn-nav.primary { background: rgba(201,146,42,0.14); color: var(--gold-lt); border-color: var(--gold); }
+.btn-nav:hover, .btn-nav:active {
+  color: var(--gold-lt);
+  background: rgba(201,146,42,0.18);
+  border-color: var(--gold);
+}
+.btn-nav.primary {
+  color: var(--gold-lt);
+  background: rgba(201,146,42,0.14);
+  border-color: var(--gold);
+}
 .btn-nav.primary:hover, .btn-nav.primary:active { background: rgba(201,146,42,0.28); }
 
 /* ── COVER ── */
@@ -286,7 +305,7 @@ blockquote {
 .kt-tile-inner {
   width: 100%; height: 100%; position: relative;
   transform-style: preserve-3d;
-  transition: transform 0.32s cubic-bezier(.4,0,.2,1);
+  transition: transform 0.15s cubic-bezier(.4,0,.2,1);
   border-radius: 6px;
 }
 .kt-tile.flipped .kt-tile-inner,
@@ -357,30 +376,21 @@ blockquote {
 .kt-btn-secondary:hover,.kt-btn-secondary:active { background:#160e00; color:#f5c842; }
 #kt-next-btn { display:none; }
 
-/* ── MOBILE NAV  (hidden on game page) ── */
-.mobile-nav {
-  display: none; position: fixed; bottom: 0; left: 0; right: 0;
-  background: linear-gradient(to top, rgba(10,5,20,0.98) 68%, transparent);
-  padding: 0.75rem 1.4rem;
-  padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0.75rem));
-  justify-content: space-between; align-items: center;
-  z-index: 180; gap: 0.9rem;
-}
-.mobile-nav .btn-nav { font-size: 0.86rem; padding: 0.62rem 0; flex: 1; text-align: center; }
+/* ── MOBILE NAV — disabled, using nav-bar for all sizes ── */
+.mobile-nav { display: none !important; }
 
 /* ── RESPONSIVE ── */
 @media (max-width: 700px) {
-  .page-layout { grid-template-columns: 1fr; padding: 0.75rem 0.9rem 1rem; overflow-y: auto; -webkit-overflow-scrolling: touch; justify-items: center; align-content: start; }
+  .page-layout { grid-template-columns: 1fr; padding: 0.75rem 3.6rem 3rem; overflow-y: auto; -webkit-overflow-scrolling: touch; justify-items: center; align-content: start; }
   .scene-svg { max-width: 230px; }
   .illustration { order: -1; }
   .page-layout.reverse { direction: ltr; }
   h2 { font-size: 1.2rem; }
-  .nav-bar { display: none !important; }
-  .mobile-nav { display: flex; }
-  .page-layout  { padding-bottom: 5.5rem; }
-  .ending-content { padding-bottom: 5rem; }
-  .cover-content  { padding-bottom: 4rem; }
-  #page-indicator { bottom: calc(env(safe-area-inset-bottom, 0px) + 3.6rem); }
+  .nav-bar { padding: 0 0.3rem; }
+  .btn-nav { width: 40px; height: 40px; font-size: 1.3rem; }
+  .ending-content  { padding-bottom: 3rem; }
+  .cover-content   { padding-bottom: 3rem; }
+  #page-indicator  { bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem); }
 }
 @media (max-width: 400px) {
   #kt-board { gap: 4px; }
@@ -448,8 +458,8 @@ blockquote {
       </div>
     </div>
     <div class="nav-bar">
-      <button class="btn-nav" onclick="goTo(0)">← Back</button>
-      <button class="btn-nav primary" onclick="goTo(2)">Next →</button>
+      <button class="btn-nav" onclick="goTo(0)">‹</button>
+      <button class="btn-nav primary" onclick="goTo(2)">›</button>
     </div>
   </section>
 
@@ -491,8 +501,8 @@ blockquote {
       </div>
     </div>
     <div class="nav-bar">
-      <button class="btn-nav" onclick="goTo(1)">← Back</button>
-      <button class="btn-nav primary" onclick="goTo(3)">Next →</button>
+      <button class="btn-nav" onclick="goTo(1)">‹</button>
+      <button class="btn-nav primary" onclick="goTo(3)">›</button>
     </div>
   </section>
 
@@ -533,8 +543,8 @@ blockquote {
       </div>
     </div>
     <div class="nav-bar">
-      <button class="btn-nav" onclick="goTo(2)">← Back</button>
-      <button class="btn-nav primary" onclick="goTo(4)">Next →</button>
+      <button class="btn-nav" onclick="goTo(2)">‹</button>
+      <button class="btn-nav primary" onclick="goTo(4)">›</button>
     </div>
   </section>
 
@@ -580,8 +590,8 @@ blockquote {
       </div>
     </div>
     <div class="nav-bar">
-      <button class="btn-nav" onclick="goTo(3)">← Back</button>
-      <button class="btn-nav primary" onclick="goTo(5)">Continue →</button>
+      <button class="btn-nav" onclick="goTo(3)">‹</button>
+      <button class="btn-nav primary" onclick="goTo(5)">›</button>
     </div>
   </section>
 
@@ -644,16 +654,22 @@ blockquote {
       <div id="kt-footer">
         <button class="kt-btn kt-btn-secondary" onclick="ktTryAgain()">↺ Try Again</button>
         <button class="kt-btn kt-btn-primary" id="kt-next-btn" onclick="ktNextLevel()">Next Level ➜</button>
+        <button class="kt-btn kt-btn-secondary" id="kt-pause-btn" onclick="togglePause()" title="Pause (3 uses)" style="min-width:52px;font-size:clamp(9px,2vw,13px);display:flex;flex-direction:column;align-items:center;gap:0;line-height:1.2">⏸<span style="display:block;font-size:8px">●●●</span></button>
         <button class="kt-btn kt-btn-secondary" onclick="goTo(5)">← Story</button>
         <button class="kt-btn kt-btn-secondary" id="kt-mute-btn" onclick="toggleMute()" title="Toggle Sound">🔊</button>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <input type="range" id="kt-volume" min="0" max="100" value="50"
+            oninput="setVolume(this.value)"
+            style="width:clamp(48px,8vw,80px);height:4px;accent-color:#f5c842;cursor:pointer;vertical-align:middle;">
+        </div>
       </div>
     </div>
   </section>
 
   <!-- MOBILE NAV -->
   <div class="mobile-nav" id="mobile-nav">
-    <button class="btn-nav" id="mob-back" onclick="goTo(currentPage-1)">← Back</button>
-    <button class="btn-nav primary" id="mob-next" onclick="goTo(currentPage+1)">Next →</button>
+    <div class="mob-arrow" id="mob-back" onclick="goTo(currentPage-1)">‹</div>
+    <div class="mob-arrow" id="mob-next" onclick="goTo(currentPage+1)">›</div>
   </div>
 </div>
 
@@ -688,18 +704,14 @@ function updateUI() {
   document.getElementById('progress-fill').style.width = (currentPage/(TOTAL_PAGES-1)*100)+'%';
   document.getElementById('page-label').textContent = PAGE_LABELS[currentPage]||'';
   document.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('active',i===currentPage));
-  const isGame = currentPage===6;
-  document.getElementById('mobile-nav').style.display  = isGame ? 'none' : '';
+  const isGame  = currentPage === 6;
+  const isCover = currentPage === 0;
+  // Hide nav-bar on cover and game pages
+  document.querySelectorAll('.nav-bar').forEach(nb => {
+    nb.style.display = (isGame || isCover) ? 'none' : 'flex';
+  });
   document.getElementById('page-indicator').style.opacity = isGame ? '0' : '1';
   document.getElementById('page-indicator').style.pointerEvents = isGame ? 'none' : '';
-  const mb = document.getElementById('mob-back');
-  const mn = document.getElementById('mob-next');
-  if (mb) mb.style.opacity = currentPage===0 ? '0.3':'1';
-  if (mn) {
-    if (currentPage===5) mn.textContent='Continue the Quest ⚔';
-    else if (currentPage===TOTAL_PAGES-1) mn.textContent='Read Again ↺';
-    else mn.textContent='Next →';
-  }
 }
 
 function buildDots() {
@@ -719,13 +731,35 @@ document.addEventListener('keydown', e => {
 });
 
 function initSwipe() {
-  let sx=0,sy=0;
-  document.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY;},{passive:true});
-  document.addEventListener('touchend',e=>{
-    if (currentPage===6) return;
-    const dx=e.changedTouches[0].clientX-sx, dy=e.changedTouches[0].clientY-sy;
-    if (Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>48) { if(dx<0) goTo(currentPage+1); else goTo(currentPage-1); }
+  let sx=0, sy=0, dragging=false;
+
+  // Touch swipe
+  document.addEventListener('touchstart', e=>{
+    if(currentPage===6) return;
+    sx=e.touches[0].clientX; sy=e.touches[0].clientY;
   },{passive:true});
+  document.addEventListener('touchend', e=>{
+    if(currentPage===6) return;
+    const dx=e.changedTouches[0].clientX-sx, dy=e.changedTouches[0].clientY-sy;
+    if(Math.abs(dx)>Math.abs(dy) && Math.abs(dx)>48){
+      if(dx<0) goTo(currentPage+1); else goTo(currentPage-1);
+    }
+  },{passive:true});
+
+  // Mouse drag (desktop)
+  document.addEventListener('mousedown', e=>{
+    if(currentPage===6) return;
+    sx=e.clientX; sy=e.clientY; dragging=true;
+  });
+  document.addEventListener('mouseup', e=>{
+    if(!dragging || currentPage===6) return;
+    dragging=false;
+    const dx=e.clientX-sx, dy=e.clientY-sy;
+    if(Math.abs(dx)>Math.abs(dy) && Math.abs(dx)>60){
+      if(dx<0) goTo(currentPage+1); else goTo(currentPage-1);
+    }
+  });
+  document.addEventListener('mouseleave', ()=>{ dragging=false; });
 }
 
 /* ════════════════════════════════
@@ -980,14 +1014,17 @@ function onTileClick(tile){
         a.classList.add('matched');a.classList.remove('flipped');
         b.classList.add('matched');b.classList.remove('flipped');
         matched++;
+        // +1 second bonus for every match
+        timeLeft = Math.min(timeLeft + 1, maxTime);
+        updateTimerUI();
         document.getElementById('kt-pairs').textContent=matched;
         document.getElementById('kt-tiles-left').textContent=(totalPairs-matched)*2;
         flipped=[];locked=false;
         if(matched===totalPairs) endGame('win');
-      },380);
+      },180);
     } else {
       a.classList.add('wrong');b.classList.add('wrong');
-      setTimeout(()=>{a.classList.remove('flipped','wrong');b.classList.remove('flipped','wrong');flipped=[];locked=false;},780);
+      setTimeout(()=>{a.classList.remove('flipped','wrong');b.classList.remove('flipped','wrong');flipped=[];locked=false;},500);
     }
   }
 }
@@ -1029,7 +1066,6 @@ let audioCtx = null;
 let masterGain = null;
 let bgmNodes = [];
 let isMuted = false;
-let bgmRunning = false;
 
 function getAudioCtx() {
   if (!audioCtx) {
@@ -1045,13 +1081,25 @@ function getAudioCtx() {
 function toggleMute() {
   isMuted = !isMuted;
   const btn = document.getElementById('kt-mute-btn');
+  const slider = document.getElementById('kt-volume');
   if (isMuted) {
     masterGain && (masterGain.gain.value = 0);
     btn.textContent = '🔇';
+    if (slider) slider.value = 0;
   } else {
-    masterGain && (masterGain.gain.value = 0.5);
+    const vol = slider ? slider.value / 100 : 0.5;
+    masterGain && (masterGain.gain.value = vol);
     btn.textContent = '🔊';
+    if (slider) slider.value = vol * 100;
   }
+}
+
+function setVolume(val) {
+  const vol = parseInt(val) / 100;
+  isMuted = vol === 0;
+  if (masterGain) masterGain.gain.value = vol;
+  const btn = document.getElementById('kt-mute-btn');
+  if (btn) btn.textContent = vol === 0 ? '🔇' : vol < 0.4 ? '🔉' : '🔊';
 }
 
 /* ── Utility: create a simple oscillator note ── */
@@ -1067,88 +1115,6 @@ function playNote(freq, type, startTime, duration, gainVal, ctx, dest) {
   osc.start(startTime);
   osc.stop(startTime + duration + 0.05);
   return osc;
-}
-
-/* ── Background Music ──
-   A looping medieval-flavoured arpeggio melody built from a pentatonic scale.
-   Three layers: melody (square), bass (sawtooth), harmony pad (sine).
-*/
-function startBGM() {
-  if (bgmRunning) return;
-  bgmRunning = true;
-  const ctx = getAudioCtx();
-
-  // Pentatonic scale notes (Hz) — D minor pentatonic, two octaves
-  const scale = [
-    146.83, 174.61, 196.00, 220.00, 261.63,  // D3 F3 G3 A3 C4
-    293.66, 349.23, 392.00, 440.00, 523.25,  // D4 F4 G4 A4 C5
-    587.33, 698.46, 784.00                    // D5 F5 G5
-  ];
-
-  // Melody pattern — indices into scale array
-  const melodyPattern = [
-    4,6,7,8, 6,4,2,1,
-    4,7,8,9, 7,6,4,2,
-    2,4,6,7, 9,8,6,4,
-    1,2,4,6, 8,7,6,4
-  ];
-
-  // Bass pattern — root and fifth alternating
-  const bassPattern = [0,4, 0,3, 0,4, 0,2];
-
-  const bpm    = 138;
-  const beat   = 60 / bpm;
-  const step   = beat / 2; // 8th notes
-  const loopBars = 8;
-  const loopLen  = loopBars * 4 * beat;
-
-  let loopStart = ctx.currentTime + 0.05;
-
-  function scheduleLoop(startAt) {
-    if (!bgmRunning) return;
-
-    // ── Melody layer (square wave) ──
-    melodyPattern.forEach((idx, i) => {
-      const t = startAt + i * step;
-      const freq = scale[idx] * (i < 16 ? 1 : 1); // stays same octave
-      playNote(freq, 'square', t, step * 0.75, 0.08, ctx, masterGain);
-    });
-
-    // ── Harmony pad (sine, every 4 steps) ──
-    for (let i = 0; i < melodyPattern.length; i += 4) {
-      const t    = startAt + i * step;
-      const base = scale[melodyPattern[i]];
-      // play a fifth above
-      const fifth = base * 1.5;
-      playNote(base,  'sine', t, step * 3.5, 0.04, ctx, masterGain);
-      playNote(fifth, 'sine', t, step * 3.5, 0.03, ctx, masterGain);
-    }
-
-    // ── Bass layer (sawtooth, half-time) ──
-    const bassScale = [scale[0], scale[2], scale[4], scale[7]]; // D3 G3 C4 G4
-    bassPattern.forEach((bi, i) => {
-      const t    = startAt + i * beat;
-      const freq = bassScale[bi % bassScale.length];
-      playNote(freq, 'sawtooth', t, beat * 0.6, 0.06, ctx, masterGain);
-    });
-
-    // ── Rhythm pulse (noise-like triangle ping every beat) ──
-    for (let i = 0; i < loopBars * 4; i++) {
-      const t = startAt + i * beat;
-      playNote(880, 'triangle', t, 0.04, 0.025, ctx, masterGain);
-    }
-
-    // Schedule next loop
-    const nextStart = startAt + loopLen;
-    const delay = (nextStart - ctx.currentTime - 0.1) * 1000;
-    setTimeout(() => scheduleLoop(nextStart), Math.max(0, delay));
-  }
-
-  scheduleLoop(loopStart);
-}
-
-function stopBGM() {
-  bgmRunning = false;
 }
 
 /* ── Sound Effects ── */
@@ -1223,11 +1189,10 @@ function sfxLevelUp() {
 
 /* ── Hook audio into game events ── */
 
-// Start BGM when game starts
+// BGM continues uninterrupted — no start/stop on game begin
 const _origStartGame = startGame;
 startGame = function() {
   _origStartGame();
-  startBGM();
 };
 
 // Flip sound on tile click — patch onTileClick
@@ -1239,8 +1204,7 @@ onTileClick = function(tile) {
   _origOnTileClick(tile);
 };
 
-// Match/no-match sounds — patch the match logic inside buildBoard
-// We override endGame and the match detection via a post-match hook
+// Match/no-match sounds via MutationObserver
 const _origEndGame = endGame;
 endGame = function(reason) {
   if (reason === 'win') {
@@ -1252,8 +1216,6 @@ endGame = function(reason) {
   _origEndGame(reason);
 };
 
-// Patch match detection: wrap the tile click handler's inner logic
-// by observing DOM class changes on tiles
 const _tileObserver = new MutationObserver(mutations => {
   mutations.forEach(m => {
     if (m.type === 'attributes' && m.attributeName === 'class') {
@@ -1271,7 +1233,6 @@ const _tileObserver = new MutationObserver(mutations => {
   });
 });
 
-// Re-observe board tiles after each board build
 const _origBuildBoard = buildBoard;
 buildBoard = function(lvl, pool) {
   _origBuildBoard(lvl, pool);
@@ -1280,12 +1241,290 @@ buildBoard = function(lvl, pool) {
   });
 };
 
-// Stop BGM when navigating away from game page
+// Navigation never touches BGM — music plays continuously
 const _origGoTo = goTo;
 goTo = function(n) {
-  if (currentPage === 6 && n !== 6) stopBGM();
-  if (n === 6 && gameStarted)       startBGM();
   _origGoTo(n);
+};
+
+// Autostart on first interaction
+document.addEventListener('DOMContentLoaded', () => {
+  const startOnce = () => {
+    startStoryBGM();
+    document.removeEventListener('click',      startOnce);
+    document.removeEventListener('touchstart', startOnce);
+  };
+  document.addEventListener('click',      startOnce);
+  document.addEventListener('touchstart', startOnce);
+});
+
+/* ════════════════════════════════════════════════════════
+   STORY BGM — Heroic & Triumphant
+   ════════════════════════════════════════════════════════ */
+let storyBgmRunning = false;
+
+function startStoryBGM() {
+  if (storyBgmRunning) return;
+  storyBgmRunning = true;
+  const ctx = getAudioCtx();
+
+  const bpm=116, beat=60/bpm, half=beat/2, quarter=beat/4;
+
+  const melody = [
+    {f:293.66,d:half},{f:369.99,d:half},{f:440,d:beat},{f:493.88,d:beat},
+    {f:587.33,d:half},{f:659.25,d:half},{f:587.33,d:beat},{f:440,d:beat},
+    {f:369.99,d:half},{f:329.63,d:half},{f:293.66,d:half},{f:246.94,d:half},
+    {f:293.66,d:beat},
+    {f:440,d:quarter},{f:493.88,d:quarter},{f:587.33,d:half},{f:659.25,d:half},{f:783.99,d:beat},
+  ];
+  const bass = [
+    {f:110,d:beat},{f:146.83,d:beat},{f:110,d:beat},{f:146.83,d:beat},
+    {f:110,d:beat},{f:123.47,d:beat},{f:110,d:beat},{f:146.83,d:beat},
+  ];
+  const pads = [
+    [293.66,369.99,440],[329.63,415.30,493.88],[246.94,311.13,369.99],[293.66,369.99,440],
+  ];
+
+  function scheduleStoryLoop(startAt) {
+    if (!storyBgmRunning) return;
+    let t = startAt;
+    melody.forEach(n => {
+      const osc=ctx.createOscillator(), g=ctx.createGain();
+      osc.type='triangle'; osc.frequency.setValueAtTime(n.f, t);
+      const lfo=ctx.createOscillator(), lfoG=ctx.createGain();
+      lfo.frequency.value=5.5; lfoG.gain.value=3;
+      lfo.connect(lfoG); lfoG.connect(osc.frequency);
+      lfo.start(t); lfo.stop(t+n.d+0.05);
+      g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.22,t+0.02);
+      g.gain.setValueAtTime(0.22,t+n.d-0.04); g.gain.linearRampToValueAtTime(0,t+n.d);
+      osc.connect(g); g.connect(masterGain); osc.start(t); osc.stop(t+n.d+0.05);
+      const osc2=ctx.createOscillator(), g2=ctx.createGain();
+      osc2.type='sine'; osc2.frequency.value=n.f*2;
+      g2.gain.setValueAtTime(0,t); g2.gain.linearRampToValueAtTime(0.08,t+0.02);
+      g2.gain.linearRampToValueAtTime(0,t+n.d);
+      osc2.connect(g2); g2.connect(masterGain); osc2.start(t); osc2.stop(t+n.d+0.05);
+      t+=n.d;
+    });
+    let bt=startAt;
+    bass.forEach(n=>{
+      const osc=ctx.createOscillator(), g=ctx.createGain();
+      osc.type='sawtooth'; osc.frequency.value=n.f;
+      g.gain.setValueAtTime(0,bt); g.gain.linearRampToValueAtTime(0.10,bt+0.01);
+      g.gain.exponentialRampToValueAtTime(0.001,bt+n.d*0.8);
+      osc.connect(g); g.connect(masterGain); osc.start(bt); osc.stop(bt+n.d);
+      bt+=n.d;
+    });
+    pads.forEach((chord,i)=>{
+      const pt=startAt+i*beat*2;
+      chord.forEach(freq=>{
+        const osc=ctx.createOscillator(), g=ctx.createGain();
+        osc.type='sine'; osc.frequency.value=freq;
+        g.gain.setValueAtTime(0,pt); g.gain.linearRampToValueAtTime(0.06,pt+0.1);
+        g.gain.setValueAtTime(0.06,pt+beat*1.7); g.gain.linearRampToValueAtTime(0,pt+beat*2);
+        osc.connect(g); g.connect(masterGain); osc.start(pt); osc.stop(pt+beat*2+0.1);
+      });
+    });
+    for(let i=0;i<8;i++){
+      const ht=startAt+i*beat;
+      if(i%2===1){
+        const buf=ctx.createBuffer(1,ctx.sampleRate*0.08,ctx.sampleRate);
+        const data=buf.getChannelData(0);
+        for(let j=0;j<data.length;j++) data[j]=(Math.random()*2-1);
+        const src=ctx.createBufferSource(), g=ctx.createGain(), flt=ctx.createBiquadFilter();
+        flt.type='bandpass'; flt.frequency.value=2400; flt.Q.value=0.8;
+        src.buffer=buf; g.gain.setValueAtTime(0.09,ht); g.gain.exponentialRampToValueAtTime(0.001,ht+0.07);
+        src.connect(flt); flt.connect(g); g.connect(masterGain); src.start(ht); src.stop(ht+0.09);
+      } else {
+        const osc=ctx.createOscillator(), g=ctx.createGain();
+        osc.type='sine'; osc.frequency.setValueAtTime(160,ht); osc.frequency.exponentialRampToValueAtTime(50,ht+0.06);
+        g.gain.setValueAtTime(0.18,ht); g.gain.exponentialRampToValueAtTime(0.001,ht+0.08);
+        osc.connect(g); g.connect(masterGain); osc.start(ht); osc.stop(ht+0.1);
+      }
+    }
+    const loopLen=melody.reduce((s,n)=>s+n.d,0);
+    const delay=(startAt+loopLen-ctx.currentTime-0.1)*1000;
+    setTimeout(()=>scheduleStoryLoop(startAt+loopLen), Math.max(0,delay));
+  }
+  scheduleStoryLoop(ctx.currentTime+0.05);
+}
+function stopStoryBGM() { storyBgmRunning=false; }
+
+/* ════════════════════════════════════════════════════════
+   PAUSE POWER
+   • 3 max charges, starts at 3
+   • Each pause lasts 20 seconds then auto-resumes
+   • Every 5 levels completed = +1 charge (max 3)
+   • Clicking "Story" while in-game costs 1 pause charge
+   • If paused via Story and 20s runs out → auto-unpause
+     (timer keeps running even while on story page)
+   ════════════════════════════════════════════════════════ */
+const MAX_PAUSE = 3;
+const PAUSE_DURATION = 20; // seconds each pause lasts
+
+let pauseCharges = MAX_PAUSE;
+let isPaused = false;
+let pauseCountdown = 0;
+let pauseCountdownInterval = null;
+
+function initPause() {
+  // Only reset charges at the very start of a new game run, not every level
+  // (charges are managed by the level-complete reward system)
+  isPaused = false;
+  clearInterval(pauseCountdownInterval);
+  pauseCountdown = 0;
+  updatePauseUI();
+}
+
+function updatePauseUI() {
+  const btn = document.getElementById('kt-pause-btn');
+  if (!btn) return;
+  const pips = Array.from({length: MAX_PAUSE}, (_, i) =>
+    `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;
+     background:${i < pauseCharges ? '#f5c842' : '#3a2200'};
+     margin:0 2px;border:1px solid #6b4c1a;transition:background 0.3s;"></span>`
+  ).join('');
+  const label = isPaused
+    ? `▶ <span style="font-size:9px;color:#f5c842">${pauseCountdown}s</span>`
+    : '⏸';
+  btn.innerHTML = `${label}<span style="display:block;margin-top:2px;line-height:1">${pips}</span>`;
+  btn.style.opacity = (!isPaused && pauseCharges === 0) ? '0.35' : '1';
+  btn.style.cursor  = (!isPaused && pauseCharges === 0) ? 'not-allowed' : 'pointer';
+}
+
+function startPauseCountdown(onExpire) {
+  clearInterval(pauseCountdownInterval);
+  pauseCountdown = PAUSE_DURATION;
+  updatePauseUI();
+  pauseCountdownInterval = setInterval(() => {
+    pauseCountdown--;
+    updatePauseUI();
+    // Also update overlay if visible
+    const msgEl = document.getElementById('kt-pause-countdown');
+    if (msgEl) msgEl.textContent = `${pauseCountdown}s remaining`;
+    if (pauseCountdown <= 0) {
+      clearInterval(pauseCountdownInterval);
+      onExpire();
+    }
+  }, 1000);
+}
+
+function showPauseOverlay(triggeredByStory) {
+  const ov = document.getElementById('kt-overlay');
+  if (!ov) return;
+  ov.innerHTML = `
+    <div id="kt-overlay-title">⏸ Paused</div>
+    <div id="kt-overlay-msg" style="font-size:clamp(0.8rem,2vw,0.95rem)">
+      <span id="kt-pause-countdown">${pauseCountdown}s remaining</span>
+      &nbsp;·&nbsp;${pauseCharges} charge${pauseCharges !== 1 ? 's' : ''} left
+      ${triggeredByStory ? '<br><span style="opacity:0.7;font-size:0.85em">Paused by story visit</span>' : ''}
+    </div>
+    <div class="kt-overlay-btns">
+      <button class="kt-btn kt-btn-primary" onclick="resumeGame()">▶ Resume</button>
+    </div>`;
+  ov.style.display = 'flex';
+}
+
+function pauseGame(triggeredByStory) {
+  if (gameOver || !gameStarted) return;
+  if (isPaused) return;                      // already paused
+  if (pauseCharges <= 0) return;             // no charges
+
+  isPaused = true;
+  pauseCharges--;
+  clearInterval(timerInterval);
+  locked = true;
+  document.getElementById('kt-board').style.filter = 'brightness(0.35)';
+  if (!isMuted && masterGain) masterGain.gain.setTargetAtTime(0.12, audioCtx.currentTime, 0.2);
+
+  // Only show the overlay if we're on the game page
+  if (currentPage === 6) showPauseOverlay(triggeredByStory);
+
+  // Start 20s countdown — when it expires, auto-resume
+  startPauseCountdown(() => {
+    // Time's up — force resume even if on story page
+    resumeGame();
+  });
+
+  updatePauseUI();
+}
+
+function resumeGame() {
+  if (!isPaused) return;
+  clearInterval(pauseCountdownInterval);
+  isPaused = false;
+  locked = false;
+  document.getElementById('kt-board').style.filter = '';
+  hideOverlay();
+  startTimer(timeLeft);
+  if (!isMuted && masterGain) masterGain.gain.setTargetAtTime(0.5, audioCtx.currentTime, 0.2);
+  // If we're on the story page when the timer expires, bounce back to game
+  if (currentPage !== 6) goTo(6);
+  updatePauseUI();
+}
+
+function togglePause() {
+  if (gameOver || !gameStarted) return;
+  if (isPaused) {
+    resumeGame();
+  } else {
+    pauseGame(false);
+  }
+}
+
+// ── Story button in-game costs 1 pause charge ──
+// Wrap goTo to intercept story navigation from game page
+const _origGoToForPause = goTo;
+goTo = function(n) {
+  if (currentPage === 6 && n !== 6 && gameStarted && !gameOver) {
+    // Only consume a pause if the game is actively running (not victory/defeat)
+    if (!isPaused && pauseCharges > 0) {
+      pauseGame(true); // uses 1 charge, starts 20s countdown
+    }
+  }
+  _origGoToForPause(n);
+};
+
+// ── Award +1 pause every 5 levels (max 3) ──
+const _origKtNextLevel = ktNextLevel;
+ktNextLevel = function() {
+  // Award before advancing level
+  const completedLevel = LEVELS[curLevel].level; // 1-based
+  if (completedLevel % 5 === 0 && pauseCharges < MAX_PAUSE) {
+    pauseCharges = Math.min(MAX_PAUSE, pauseCharges + 1);
+    // Flash the pause button to show reward
+    const btn = document.getElementById('kt-pause-btn');
+    if (btn) {
+      btn.style.boxShadow = '0 0 14px #f5c842';
+      setTimeout(() => { if (btn) btn.style.boxShadow = ''; }, 1200);
+    }
+    updatePauseUI();
+  }
+  _origKtNextLevel();
+};
+
+// ── Full reset on new game ──
+const _origKtRestart = ktRestart;
+ktRestart = function() {
+  pauseCharges = MAX_PAUSE;
+  isPaused = false;
+  clearInterval(pauseCountdownInterval);
+  updatePauseUI();
+  _origKtRestart();
+};
+
+// Reset pause state on each level (not charges)
+const _origInitLevel = initLevel;
+initLevel = function(lvl) {
+  // If was paused, clean up
+  if (isPaused) {
+    clearInterval(pauseCountdownInterval);
+    isPaused = false;
+    locked = false;
+    document.getElementById('kt-board').style.filter = '';
+    hideOverlay();
+  }
+  updatePauseUI();
+  _origInitLevel(lvl);
 };
 </script>
 </body>
