@@ -618,7 +618,7 @@ blockquote {
           <div class="kt-intro-rule">🃏 Flip tiles to reveal relics</div>
           <div class="kt-intro-rule">✅ Match pairs to keep them revealed</div>
           <div class="kt-intro-rule">⏳ Timer shrinks each level</div>
-          <div class="kt-intro-rule">🏆 <span>34 Levels</span> of glory await</div>
+          <div class="kt-intro-rule">🏆 <span>35 Levels</span> of glory await</div>
         </div>
         <button class="kt-btn kt-btn-primary" onclick="startGame()" style="font-size:clamp(10px,2.7vw,13px);padding:9px 24px;letter-spacing:2px;margin-top:3px">⚔ Begin the Trial</button>
         <button class="kt-btn kt-btn-secondary" onclick="goTo(5)" style="font-size:clamp(8.5px,1.9vw,11px);padding:5px 14px;margin-top:1px">← Back to Story</button>
@@ -816,23 +816,24 @@ function initParticles() {
    GAME
    ════════════════════════════════ */
 const LEVELS = [
-  {level:1, timer:100,tiles:4},  {level:2, timer:98, tiles:6},
-  {level:3, timer:96, tiles:8},  {level:4, timer:94, tiles:10},
-  {level:5, timer:92, tiles:12}, {level:6, timer:90, tiles:14},
-  {level:7, timer:88, tiles:16}, {level:8, timer:86, tiles:18},
-  {level:9, timer:84, tiles:20}, {level:10,timer:82, tiles:22},
-  {level:11,timer:80, tiles:24}, {level:12,timer:78, tiles:26},
-  {level:13,timer:76, tiles:28}, {level:14,timer:74, tiles:30},
-  {level:15,timer:72, tiles:32}, {level:16,timer:70, tiles:32},
-  {level:17,timer:68, tiles:32}, {level:18,timer:66, tiles:32},
-  {level:19,timer:64, tiles:32}, {level:20,timer:62, tiles:32},
-  {level:21,timer:60, tiles:32}, {level:22,timer:58, tiles:32},
-  {level:23,timer:56, tiles:32}, {level:24,timer:54, tiles:32},
-  {level:25,timer:52, tiles:32}, {level:26,timer:50, tiles:32},
-  {level:27,timer:48, tiles:32}, {level:28,timer:46, tiles:32},
-  {level:29,timer:44, tiles:32}, {level:30,timer:42, tiles:32},
-  {level:31,timer:40, tiles:32}, {level:32,timer:38, tiles:32},
-  {level:33,timer:36, tiles:32}, {level:34,timer:34, tiles:32},
+  {level:1, timer:130,tiles:4},  {level:2, timer:128,tiles:6},
+  {level:3, timer:126,tiles:8},  {level:4, timer:124,tiles:10},
+  {level:5, timer:122,tiles:12}, {level:6, timer:120,tiles:14},
+  {level:7, timer:118,tiles:16}, {level:8, timer:116,tiles:18},
+  {level:9, timer:114,tiles:20}, {level:10,timer:112,tiles:22},
+  {level:11,timer:110,tiles:24}, {level:12,timer:108,tiles:26},
+  {level:13,timer:106,tiles:28}, {level:14,timer:104,tiles:30},
+  {level:15,timer:102,tiles:32}, {level:16,timer:100,tiles:32},
+  {level:17,timer:98, tiles:32}, {level:18,timer:96, tiles:32},
+  {level:19,timer:94, tiles:32}, {level:20,timer:92, tiles:32},
+  {level:21,timer:90, tiles:32}, {level:22,timer:88, tiles:32},
+  {level:23,timer:86, tiles:32}, {level:24,timer:84, tiles:32},
+  {level:25,timer:82, tiles:32}, {level:26,timer:80, tiles:32},
+  {level:27,timer:78, tiles:32}, {level:28,timer:76, tiles:32},
+  {level:29,timer:74, tiles:32}, {level:30,timer:72, tiles:32},
+  {level:31,timer:70, tiles:32}, {level:32,timer:68, tiles:32},
+  {level:33,timer:66, tiles:32}, {level:34,timer:64, tiles:32},
+  {level:35,timer:62, tiles:32},
 ];
 
 /* All 100 icons — pre-rendered to Image objects so they are always ready */
@@ -1034,12 +1035,12 @@ function endGame(reason){
   if(reason==='win'){
     if(curLevel>=LEVELS.length-1){
       showOverlay('🏰 Journey Unfinished…',
-        '"Brave knight, thou hast conquered thirty-four trials of shadow and steel. Yet the realm stirs with deeper mysteries. Rest now — for greater treasures still await thy return."',
+        '"Brave knight, thou hast conquered thirty-five trials of shadow and steel. Yet the realm stirs with deeper mysteries. Rest now — for greater treasures still await thy return."',
         [{label:'⚔ Play Again',fn:'ktRestart()'},{label:'← Story',fn:'goTo(5)'}]);
     } else {
       document.getElementById('kt-next-btn').style.display='inline-block';
       showOverlay('✨ Victory!',`Level ${LEVELS[curLevel].level} cleared! The treasure glitters in your hands.`,
-        [{label:'Next Level ➜',fn:'ktNextLevel()'},{label:'↺ Restart',fn:'ktRestart()'}]);
+        [{label:'Next Level ➜',fn:'ktNextLevel()'},{label:'↺ Replay Level',fn:'ktTryAgain()'}]);
     }
   } else {
     showOverlay('💀 Time\'s Up!','The hourglass has run dry. The dungeon grows dark again…',
