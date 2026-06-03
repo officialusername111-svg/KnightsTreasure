@@ -197,7 +197,6 @@ blockquote {
 .ending-flame { font-size: 3.2rem; animation: flame-dance 2s ease-in-out infinite; filter: drop-shadow(0 0 18px rgba(232,85,10,0.8)); }
 @keyframes flame-dance { 0%,100%{transform:scale(1) rotate(-3deg)} 50%{transform:scale(1.08) rotate(3deg)} }
 .ending-title { font-family:'Cinzel Decorative',serif; font-size:clamp(1.8rem,5vw,3.5rem); color:var(--gold-lt); animation:title-breathe 4s ease-in-out infinite; }
-.ending-sub { font-family:'Cinzel',serif; font-size:1.05rem; letter-spacing:0.3em; color:var(--gold); text-transform:uppercase; opacity:0.8; }
 .ending-hearts { display:flex; gap:0.45rem; font-size:1.45rem; }
 .heart { display:inline-block; animation:heart-beat 2s ease-in-out infinite; }
 .h1{animation-delay:0s}.h2{animation-delay:.2s}.h3{animation-delay:.4s}.h4{animation-delay:.6s}.h5{animation-delay:.8s}
@@ -264,16 +263,25 @@ blockquote {
   position: relative;
 }
 #kt-board {
-  display: grid; gap: 5px;
-  width: 100%; max-width: 640px;
+  display: grid;
   margin: 0 auto;
+  justify-content: center;
+  align-content: center;
 }
 
 /* Tiles */
+@keyframes tile-pop-in {
+  0%   { opacity: 0; transform: scale(0.1); }
+  65%  { transform: scale(1.08); }
+  85%  { transform: scale(0.96); }
+  100% { opacity: 1; transform: scale(1); }
+}
 .kt-tile {
-  cursor: pointer; perspective: 600px; aspect-ratio: 1;
+  animation: tile-pop-in 0.38s cubic-bezier(.34,1.56,.64,1) both;
+  cursor: pointer; perspective: 600px;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation; user-select: none;
+  flex-shrink: 0;
 }
 .kt-tile-inner {
   width: 100%; height: 100%; position: relative;
@@ -563,7 +571,7 @@ blockquote {
         </svg>
       </div>
       <div class="text-panel">
-        <div class="chapter-tag">Chapter IV</div>
+        <div class="chapter-tag">Chapter III</div>
         <h2>The True Treasure</h2>
         <p>The light that burst from the chest did not fade. It grew — spilling over the mountains, across the frozen kingdom.</p>
         <p>He had faced every darkness. He had fallen and risen. And at the end of it all, he found that <strong>the greatest treasure was never gold.</strong></p>
@@ -582,12 +590,7 @@ blockquote {
     <canvas id="ending-canvas"></canvas>
     <div class="ending-content">
       <div class="ending-flame">🔥</div>
-      <h2 class="ending-title">For You, Bi.</h2>
-      <p class="ending-sub">Happy Birthday.</p>
-      <div class="ending-hearts">
-        <span class="heart h1">💛</span><span class="heart h2">🧡</span><span class="heart h3">💛</span><span class="heart h4">🧡</span><span class="heart h5">💛</span>
-      </div>
-      <p class="ending-msg">Every scar the knight carries<br>was worth it — for this moment.<br><em>I love you so much.</em></p>
+      <p class="ending-msg">Every scar the knight carries<br>was worth it — for this moment.</p>
       <p class="ending-tagline">~ The End ~</p>
       <button class="btn-start" onclick="goTo(6)" style="margin-top:1.2rem">Continue the Quest ⚔</button>
     </div>
@@ -642,6 +645,7 @@ blockquote {
         <button class="kt-btn kt-btn-secondary" onclick="ktTryAgain()">↺ Try Again</button>
         <button class="kt-btn kt-btn-primary" id="kt-next-btn" onclick="ktNextLevel()">Next Level ➜</button>
         <button class="kt-btn kt-btn-secondary" onclick="goTo(5)">← Story</button>
+        <button class="kt-btn kt-btn-secondary" id="kt-mute-btn" onclick="toggleMute()" title="Toggle Sound">🔊</button>
       </div>
     </div>
   </section>
@@ -659,7 +663,7 @@ blockquote {
    ════════════════════════════════ */
 let currentPage = 0;
 const TOTAL_PAGES = 7; // 0–6
-const PAGE_LABELS = ['Cover','Chapter I','Chapter II','Chapter III','Chapter IV','The End','The Quest'];
+const PAGE_LABELS = ['Cover','Chapter I','Chapter II','Chapter III','The End','The Quest','The Quest'];
 
 document.addEventListener('DOMContentLoaded', () => {
   buildDots();
@@ -798,68 +802,25 @@ const LEVELS = [
 ];
 
 /* All 100 icons — pre-rendered to Image objects so they are always ready */
+/* Only emojis from Unicode 9 or earlier / widely supported on all platforms */
 const ALL_ICONS = [
-  '🦁','🐯','🦊','🐺','🦅','🦉','🐉','🦄','🦋','🦚',
-  '🐻','🦌','🐸','🦜','🦩','🐬','🦈','🦖','🦕','🐲',
-  '💎','💍','👑','⚔️','🛡️','🗡️','🏹','🔱','⚙️','🗝️',
-  '⚗️','🧪','🪬','🔮','🕯️','🧲','🪔','🏺','📿','🎴',
-  '🔨','🪚','🪛','🔧','🪝','🪵','⛏️','🔩','🪤','🧰',
-  '🍯','🧁','🥐','🫕','🍖','🧇','🫙','🍎','🌹','🍋',
-  '🌋','🏔️','🌊','🌪️','🌙','☄️','🌈','🍄','🌿','🪨',
-  '🎭','🎲','🎯','🎸','🎺','🥁','🪗','🎻','🪈','🎵',
-  '🪩','🎨','🧸','🪆','🎋','🏮','🧨','🎐','🪁','🎑',
-  '🐙','🦑','🦀','🦞','🐡','🐊','🦭','🦫','🌺','🌸'
+  /* Animals */
+  '🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯',
+  '🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐦','🦆','🦉',
+  '🦇','🐺','🐗','🐴','🦄','🐝','🐛','🦋','🐌','🐞',
+  '🐢','🐍','🦎','🦖','🦕','🐙','🦑','🦀','🐡','🐬',
+  /* Food */
+  '🍎','🍊','🍋','🍇','🍓','🍒','🍑','🍍','🥝','🍆',
+  '🌽','🍄','🥕','🧅','🧄','🍞','🧀','🍖','🍗','🍔',
+  '🍟','🌮','🍣','🍩','🍪','🎂','🍰','🧁','🍫','🍯',
+  /* Objects */
+  '⚔️','🛡️','🏹','👑','💎','🔮','🗝️','🕯️','⚗️','🔭',
+  '📜','🎭','🎲','🎯','🎨','🎸','🎺','🎻','🥁','🎵',
+  '⚙️','🔧','🔨','⛏️','🔩','🧲','🔦','💡','🧪','📿',
 ];
 
 let curLevel=0, timeLeft=0, maxTime=100, timerInterval=null;
 let flipped=[], matched=0, totalPairs=0, locked=false, gameOver=false, gameStarted=false;
-let tileSize=60; // computed per build
-
-/* ── Icon pre-renderer ──
-   Draws each emoji onto a tiny canvas and returns a dataURL image.
-   This guarantees the emoji is fully rasterised before we set the tile fontSize,
-   completely eliminating the "blank tile on first reveal" issue on mobile browsers.
-*/
-const iconCache = {}; // emoji → dataURL
-
-function preloadIcons(icons, tilePx, onDone) {
-  const loading = document.getElementById('kt-loading');
-  const bar = document.getElementById('kt-loading-bar');
-  const msg = document.getElementById('kt-loading-msg');
-  loading.style.display = 'flex';
-
-  let done = 0;
-  const total = icons.length;
-
-  function next(i) {
-    if (i >= total) { loading.style.display='none'; onDone(); return; }
-    const emoji = icons[i];
-    if (iconCache[emoji]) { done++; tick(i); return; }
-
-    const c = document.createElement('canvas');
-    c.width = tilePx; c.height = tilePx;
-    const ctx = c.getContext('2d');
-    const fs = Math.floor(tilePx * 0.62);
-    ctx.font = `${fs}px serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.clearRect(0,0,tilePx,tilePx);
-    ctx.fillText(emoji, tilePx/2, tilePx/2);
-    iconCache[emoji] = c.toDataURL();
-    done++;
-    tick(i);
-  }
-
-  function tick(i) {
-    const pct = Math.round((done/total)*100);
-    bar.style.width = pct+'%';
-    msg.textContent = `Loading relics… ${pct}%`;
-    // stagger slightly so browser can repaint
-    setTimeout(()=>next(i+1), 0);
-  }
-
-  next(0);
-}
 
 function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 
@@ -868,23 +829,46 @@ function getColumns(tiles, w) {
   if (tiles<=6)  return 3;
   if (tiles<=8)  return 4;
   if (tiles<=12) return 4;
-  if (tiles<=16) return w<=420?4:4;
-  if (tiles<=20) return w<=420?4:5;
-  if (tiles<=24) return w<=420?4:6;
-  if (tiles<=28) return w<=420?4:7;
-  return w<=420?4:8;
+  if (tiles<=16) return 4;
+  if (tiles<=20) return w<=480?4:5;
+  if (tiles<=24) return w<=480?4:6;
+  if (tiles<=28) return w<=480?4:7;
+  return w<=480?4:8;
 }
 
-function computeTileSize(tiles) {
-  const wrap = document.getElementById('kt-board-wrap');
-  const wrapW = wrap.clientWidth - 14;
-  const wrapH = wrap.clientHeight - 14;
-  const cols = getColumns(tiles, wrapW);
-  const rows = Math.ceil(tiles / cols);
-  const gap = 5;
-  const fromW = Math.floor((wrapW - gap*(cols-1)) / cols);
-  const fromH = Math.floor((wrapH - gap*(rows-1)) / rows);
-  return Math.max(28, Math.min(fromW, fromH));
+/* Warmup: inject all icons into a hidden off-screen div so the OS/browser
+   fully renders every glyph before we display any tile. Uses requestAnimationFrame
+   to wait two paint frames — enough for emoji fonts to load on all mobile browsers. */
+function warmupEmojis(icons, onDone) {
+  const loading = document.getElementById('kt-loading');
+  const bar     = document.getElementById('kt-loading-bar');
+  const msg     = document.getElementById('kt-loading-msg');
+  loading.style.display = 'flex';
+  bar.style.width = '0%';
+  msg.textContent = 'Preparing relics…';
+
+  // Build hidden warmup container
+  let warmup = document.getElementById('kt-warmup');
+  if (!warmup) {
+    warmup = document.createElement('div');
+    warmup.id = 'kt-warmup';
+    warmup.style.cssText = 'position:fixed;left:-9999px;top:-9999px;font-size:48px;opacity:0;pointer-events:none;white-space:nowrap;';
+    document.body.appendChild(warmup);
+  }
+  warmup.textContent = icons.join('');
+
+  bar.style.width = '50%';
+  msg.textContent = 'Loading glyphs…';
+
+  // Two rAF cycles guarantees at least 2 paint frames on all engines
+  requestAnimationFrame(()=>{
+    bar.style.width = '80%';
+    requestAnimationFrame(()=>{
+      bar.style.width = '100%';
+      msg.textContent = 'Ready!';
+      setTimeout(()=>{ loading.style.display='none'; onDone(); }, 80);
+    });
+  });
 }
 
 function startGame() {
@@ -895,11 +879,9 @@ function startGame() {
 
 function initLevel(lvl) {
   curLevel = lvl;
-  const cfg = LEVELS[lvl];
-  const ts = computeTileSize(cfg.tiles);
-  tileSize = ts;
-  const needed = shuffle(ALL_ICONS).slice(0, cfg.tiles/2);
-  preloadIcons(needed, ts, ()=>buildBoard(lvl, needed));
+  const cfg  = LEVELS[lvl];
+  const pool = shuffle(ALL_ICONS).slice(0, cfg.tiles/2);
+  warmupEmojis(pool, ()=>buildBoard(lvl, pool));
 }
 
 function buildBoard(lvl, pool) {
@@ -912,23 +894,45 @@ function buildBoard(lvl, pool) {
   board.innerHTML='';
   hideOverlay();
 
-  const w = document.getElementById('kt-board-wrap').clientWidth;
-  const cols = getColumns(cfg.tiles, w);
-  board.style.gridTemplateColumns = `repeat(${cols}, minmax(0,1fr))`;
+  const wrap = document.getElementById('kt-board-wrap');
+  const wrapW = wrap.clientWidth  - 14;
+  const wrapH = wrap.clientHeight - 14;
+  const cols  = getColumns(cfg.tiles, wrapW);
+  const rows  = Math.ceil(cfg.tiles / cols);
+  const gap   = 5;
+  const tileW = Math.floor((wrapW - gap*(cols-1)) / cols);
+  const tileH = Math.floor((wrapH - gap*(rows-1)) / rows);
+  const tilePx = Math.max(32, Math.min(tileW, tileH));
+  const emojiFontPx = Math.max(14, Math.floor(tilePx * 0.58));
+
+  board.style.gridTemplateColumns = `repeat(${cols}, ${tilePx}px)`;
+  board.style.gridTemplateRows    = `repeat(${rows}, ${tilePx}px)`;
+  board.style.gap = gap+'px';
 
   cards.forEach((emoji,i)=>{
     const tile = document.createElement('div');
     tile.className='kt-tile';
     tile.dataset.icon=emoji;
     tile.dataset.idx=i;
+    tile.style.width  = tilePx+'px';
+    tile.style.height = tilePx+'px';
 
-    // Use cached canvas-rendered image for the front face
-    const imgSrc = iconCache[emoji] || '';
+    // Compute distance from grid center for stagger
+    const tileCol = i % cols;
+    const tileRow = Math.floor(i / cols);
+    const centerCol = (cols - 1) / 2;
+    const centerRow = (rows - 1) / 2;
+    const dist = Math.sqrt(Math.pow(tileCol - centerCol, 2) + Math.pow(tileRow - centerRow, 2));
+    const maxDist = Math.sqrt(Math.pow(centerCol, 2) + Math.pow(centerRow, 2)) || 1;
+    const delay = (dist / maxDist) * 0.45; // 0s center → 0.45s corners
+    tile.style.animationDelay = delay.toFixed(3) + 's';
+
+    // Emoji rendered as plain text — most reliable across all browsers/OS
     tile.innerHTML = `
       <div class="kt-tile-inner">
         <div class="kt-tile-face kt-tile-back"></div>
         <div class="kt-tile-face kt-tile-front">
-          <img src="${imgSrc}" width="${Math.floor(tileSize*0.62)}" height="${Math.floor(tileSize*0.62)}" style="display:block;pointer-events:none" draggable="false" alt="${emoji}">
+          <span style="font-size:${emojiFontPx}px;line-height:1;display:block;user-select:none;">${emoji}</span>
         </div>
       </div>`;
     tile.addEventListener('click',()=>onTileClick(tile));
@@ -939,6 +943,12 @@ function buildBoard(lvl, pool) {
   document.getElementById('kt-tiles-left').textContent=cfg.tiles;
   document.getElementById('kt-pairs').textContent='0';
   document.getElementById('kt-next-btn').style.display='none';
+
+  // Block interaction until all tiles have animated in
+  locked = true;
+  const animDuration = (0.45 + 0.38 + 0.05) * 1000; // maxDelay + animDuration + buffer
+  setTimeout(() => { locked = false; }, animDuration);
+
   startTimer(cfg.timer);
 }
 
@@ -1011,6 +1021,272 @@ function ktTryAgain(){hideOverlay();initLevel(curLevel);}
 function ktRestart(){hideOverlay();curLevel=0;initLevel(0);}
 
 window.addEventListener('resize',()=>{if(gameStarted&&!gameOver)initLevel(curLevel);});
+
+/* ════════════════════════════════════════════════════════
+   AUDIO ENGINE  — pure Web Audio API, no external files
+   ════════════════════════════════════════════════════════ */
+let audioCtx = null;
+let masterGain = null;
+let bgmNodes = [];
+let isMuted = false;
+let bgmRunning = false;
+
+function getAudioCtx() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = 0.5;
+    masterGain.connect(audioCtx.destination);
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+function toggleMute() {
+  isMuted = !isMuted;
+  const btn = document.getElementById('kt-mute-btn');
+  if (isMuted) {
+    masterGain && (masterGain.gain.value = 0);
+    btn.textContent = '🔇';
+  } else {
+    masterGain && (masterGain.gain.value = 0.5);
+    btn.textContent = '🔊';
+  }
+}
+
+/* ── Utility: create a simple oscillator note ── */
+function playNote(freq, type, startTime, duration, gainVal, ctx, dest) {
+  const osc = ctx.createOscillator();
+  const g   = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, startTime);
+  g.gain.setValueAtTime(0, startTime);
+  g.gain.linearRampToValueAtTime(gainVal, startTime + 0.015);
+  g.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+  osc.connect(g); g.connect(dest);
+  osc.start(startTime);
+  osc.stop(startTime + duration + 0.05);
+  return osc;
+}
+
+/* ── Background Music ──
+   A looping medieval-flavoured arpeggio melody built from a pentatonic scale.
+   Three layers: melody (square), bass (sawtooth), harmony pad (sine).
+*/
+function startBGM() {
+  if (bgmRunning) return;
+  bgmRunning = true;
+  const ctx = getAudioCtx();
+
+  // Pentatonic scale notes (Hz) — D minor pentatonic, two octaves
+  const scale = [
+    146.83, 174.61, 196.00, 220.00, 261.63,  // D3 F3 G3 A3 C4
+    293.66, 349.23, 392.00, 440.00, 523.25,  // D4 F4 G4 A4 C5
+    587.33, 698.46, 784.00                    // D5 F5 G5
+  ];
+
+  // Melody pattern — indices into scale array
+  const melodyPattern = [
+    4,6,7,8, 6,4,2,1,
+    4,7,8,9, 7,6,4,2,
+    2,4,6,7, 9,8,6,4,
+    1,2,4,6, 8,7,6,4
+  ];
+
+  // Bass pattern — root and fifth alternating
+  const bassPattern = [0,4, 0,3, 0,4, 0,2];
+
+  const bpm    = 138;
+  const beat   = 60 / bpm;
+  const step   = beat / 2; // 8th notes
+  const loopBars = 8;
+  const loopLen  = loopBars * 4 * beat;
+
+  let loopStart = ctx.currentTime + 0.05;
+
+  function scheduleLoop(startAt) {
+    if (!bgmRunning) return;
+
+    // ── Melody layer (square wave) ──
+    melodyPattern.forEach((idx, i) => {
+      const t = startAt + i * step;
+      const freq = scale[idx] * (i < 16 ? 1 : 1); // stays same octave
+      playNote(freq, 'square', t, step * 0.75, 0.08, ctx, masterGain);
+    });
+
+    // ── Harmony pad (sine, every 4 steps) ──
+    for (let i = 0; i < melodyPattern.length; i += 4) {
+      const t    = startAt + i * step;
+      const base = scale[melodyPattern[i]];
+      // play a fifth above
+      const fifth = base * 1.5;
+      playNote(base,  'sine', t, step * 3.5, 0.04, ctx, masterGain);
+      playNote(fifth, 'sine', t, step * 3.5, 0.03, ctx, masterGain);
+    }
+
+    // ── Bass layer (sawtooth, half-time) ──
+    const bassScale = [scale[0], scale[2], scale[4], scale[7]]; // D3 G3 C4 G4
+    bassPattern.forEach((bi, i) => {
+      const t    = startAt + i * beat;
+      const freq = bassScale[bi % bassScale.length];
+      playNote(freq, 'sawtooth', t, beat * 0.6, 0.06, ctx, masterGain);
+    });
+
+    // ── Rhythm pulse (noise-like triangle ping every beat) ──
+    for (let i = 0; i < loopBars * 4; i++) {
+      const t = startAt + i * beat;
+      playNote(880, 'triangle', t, 0.04, 0.025, ctx, masterGain);
+    }
+
+    // Schedule next loop
+    const nextStart = startAt + loopLen;
+    const delay = (nextStart - ctx.currentTime - 0.1) * 1000;
+    setTimeout(() => scheduleLoop(nextStart), Math.max(0, delay));
+  }
+
+  scheduleLoop(loopStart);
+}
+
+function stopBGM() {
+  bgmRunning = false;
+}
+
+/* ── Sound Effects ── */
+
+function sfxFlip() {
+  if (isMuted) return;
+  const ctx = getAudioCtx();
+  const t = ctx.currentTime;
+  playNote(660, 'sine', t,        0.07, 0.18, ctx, masterGain);
+  playNote(880, 'sine', t + 0.04, 0.06, 0.12, ctx, masterGain);
+}
+
+function sfxMatch() {
+  if (isMuted) return;
+  const ctx = getAudioCtx();
+  const t = ctx.currentTime;
+  // Rising triumphant chord arpeggio
+  [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+    playNote(f, 'sine', t + i * 0.07, 0.25, 0.20, ctx, masterGain);
+  });
+}
+
+function sfxNoMatch() {
+  if (isMuted) return;
+  const ctx = getAudioCtx();
+  const t = ctx.currentTime;
+  // Descending dull thud
+  const osc = ctx.createOscillator();
+  const g   = ctx.createGain();
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(220, t);
+  osc.frequency.exponentialRampToValueAtTime(80, t + 0.2);
+  g.gain.setValueAtTime(0.22, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+  osc.connect(g); g.connect(masterGain);
+  osc.start(t); osc.stop(t + 0.25);
+}
+
+function sfxVictory() {
+  if (isMuted) return;
+  const ctx = getAudioCtx();
+  const t = ctx.currentTime;
+  // Fanfare: ascending run + chord hold
+  const run = [523.25, 587.33, 659.25, 698.46, 783.99, 880, 987.77, 1046.5];
+  run.forEach((f, i) => {
+    playNote(f, 'square', t + i * 0.06, 0.18, 0.15, ctx, masterGain);
+  });
+  // Final chord
+  [523.25, 659.25, 783.99].forEach(f => {
+    playNote(f, 'sine', t + run.length * 0.06, 0.6, 0.12, ctx, masterGain);
+  });
+}
+
+function sfxDefeat() {
+  if (isMuted) return;
+  const ctx = getAudioCtx();
+  const t = ctx.currentTime;
+  // Slow descending minor
+  [440, 415.3, 392, 349.23, 293.66].forEach((f, i) => {
+    playNote(f, 'sawtooth', t + i * 0.18, 0.30, 0.14, ctx, masterGain);
+  });
+}
+
+function sfxLevelUp() {
+  if (isMuted) return;
+  const ctx = getAudioCtx();
+  const t = ctx.currentTime;
+  [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((f, i) => {
+    playNote(f, 'triangle', t + i * 0.08, 0.22, 0.18, ctx, masterGain);
+  });
+}
+
+/* ── Hook audio into game events ── */
+
+// Start BGM when game starts
+const _origStartGame = startGame;
+startGame = function() {
+  _origStartGame();
+  startBGM();
+};
+
+// Flip sound on tile click — patch onTileClick
+const _origOnTileClick = onTileClick;
+onTileClick = function(tile) {
+  if (!tile.classList.contains('flipped') && !tile.classList.contains('matched')) {
+    sfxFlip();
+  }
+  _origOnTileClick(tile);
+};
+
+// Match/no-match sounds — patch the match logic inside buildBoard
+// We override endGame and the match detection via a post-match hook
+const _origEndGame = endGame;
+endGame = function(reason) {
+  if (reason === 'win') {
+    if (curLevel >= LEVELS.length - 1) sfxVictory();
+    else sfxLevelUp();
+  } else {
+    sfxDefeat();
+  }
+  _origEndGame(reason);
+};
+
+// Patch match detection: wrap the tile click handler's inner logic
+// by observing DOM class changes on tiles
+const _tileObserver = new MutationObserver(mutations => {
+  mutations.forEach(m => {
+    if (m.type === 'attributes' && m.attributeName === 'class') {
+      const el = m.target;
+      if (el.classList.contains('matched') && !el._sfxPlayed) {
+        el._sfxPlayed = true;
+        sfxMatch();
+      }
+      if (el.classList.contains('wrong') && !el._sfxWrong) {
+        el._sfxWrong = true;
+        sfxNoMatch();
+        setTimeout(()=>{ el._sfxWrong=false; }, 900);
+      }
+    }
+  });
+});
+
+// Re-observe board tiles after each board build
+const _origBuildBoard = buildBoard;
+buildBoard = function(lvl, pool) {
+  _origBuildBoard(lvl, pool);
+  document.querySelectorAll('.kt-tile').forEach(t => {
+    _tileObserver.observe(t, { attributes: true });
+  });
+};
+
+// Stop BGM when navigating away from game page
+const _origGoTo = goTo;
+goTo = function(n) {
+  if (currentPage === 6 && n !== 6) stopBGM();
+  if (n === 6 && gameStarted)       startBGM();
+  _origGoTo(n);
+};
 </script>
 </body>
 </html>
