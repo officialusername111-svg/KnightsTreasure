@@ -1,0 +1,450 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=MedievalSharp&family=Cinzel:wght@400;600;700&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  #kt-game {
+    min-height: 600px;
+    background: #1a0f00;
+    color: #f0d080;
+    font-family: 'Cinzel', serif;
+    padding: 16px;
+    border-radius: 12px;
+    user-select: none;
+  }
+
+  #kt-title {
+    text-align: center;
+    font-size: 26px;
+    font-weight: 700;
+    color: #f5c842;
+    letter-spacing: 3px;
+    text-shadow: 0 0 12px #a07000;
+    margin-bottom: 4px;
+  }
+  #kt-subtitle {
+    text-align: center;
+    font-size: 11px;
+    color: #a07832;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+  }
+
+  #kt-hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #2a1800;
+    border: 1px solid #6b4c1a;
+    border-radius: 8px;
+    padding: 8px 16px;
+    margin-bottom: 12px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .kt-hud-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .kt-hud-label {
+    font-size: 9px;
+    color: #a07832;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .kt-hud-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: #f5c842;
+  }
+  #kt-timer-val { color: #f5c842; }
+  #kt-timer-val.danger { color: #e05030; }
+
+  #kt-timer-bar-wrap {
+    flex: 1;
+    min-width: 80px;
+  }
+  #kt-timer-bar-bg {
+    height: 8px;
+    background: #3a2200;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 4px;
+  }
+  #kt-timer-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #f5c842, #e09000);
+    border-radius: 4px;
+    transition: width 0.5s linear, background 0.3s;
+  }
+  #kt-timer-bar.danger { background: linear-gradient(90deg, #e05030, #c02000); }
+
+  #kt-board {
+    display: grid;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 12px;
+  }
+
+  .kt-tile {
+    width: 80px;
+    height: 80px;
+    cursor: pointer;
+    perspective: 600px;
+    flex-shrink: 0;
+  }
+  .kt-tile-inner {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.35s cubic-bezier(.4,0,.2,1);
+    border-radius: 8px;
+  }
+  .kt-tile.flipped .kt-tile-inner { transform: rotateY(180deg); }
+  .kt-tile.matched .kt-tile-inner { transform: rotateY(180deg); }
+
+  .kt-tile-face {
+    position: absolute;
+    inset: 0;
+    border-radius: 8px;
+    backface-visibility: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    line-height: 1;
+  }
+  .kt-tile-back {
+    background: #2a1a00;
+    border: 2px solid #6b4c1a;
+    font-size: 26px;
+  }
+  .kt-tile-back::before { content: '⚔️'; opacity: 0.55; }
+  .kt-tile-front {
+    background: #3a2a00;
+    border: 2px solid #c09030;
+    transform: rotateY(180deg);
+  }
+  .kt-tile.matched .kt-tile-front {
+    background: #1a3a0a;
+    border-color: #60b040;
+    box-shadow: 0 0 10px #40801080;
+  }
+  .kt-tile.wrong .kt-tile-inner { animation: kt-shake 0.4s ease; }
+  @keyframes kt-shake {
+    0%,100%{transform:rotateY(180deg) translateX(0)}
+    25%{transform:rotateY(180deg) translateX(-6px)}
+    75%{transform:rotateY(180deg) translateX(6px)}
+  }
+
+  #kt-footer {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .kt-btn {
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    padding: 8px 22px;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1px solid;
+    transition: all 0.15s;
+  }
+  .kt-btn-primary {
+    background: #7a4e00;
+    border-color: #f5c842;
+    color: #f5c842;
+  }
+  .kt-btn-primary:hover { background: #a06800; }
+  .kt-btn-secondary {
+    background: transparent;
+    border-color: #6b4c1a;
+    color: #a07832;
+  }
+  .kt-btn-secondary:hover { background: #2a1800; color: #f5c842; }
+
+  #kt-overlay {
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    background: #0d0800ee;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    z-index: 10;
+    text-align: center;
+    padding: 24px;
+  }
+  #kt-overlay-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #f5c842;
+    text-shadow: 0 0 16px #a07000;
+    letter-spacing: 2px;
+  }
+  #kt-overlay-msg {
+    font-size: 14px;
+    color: #c0a060;
+    max-width: 320px;
+    line-height: 1.6;
+    font-family: Georgia, serif;
+    font-style: italic;
+  }
+  #kt-wrap { position: relative; }
+
+  @media (max-width: 480px) {
+    .kt-tile { width: 58px; height: 58px; }
+    .kt-tile-face { font-size: 26px; }
+    #kt-title { font-size: 20px; }
+  }
+</style>
+
+<div id="kt-game">
+  <div id="kt-title">⚔ Knight's Treasure ⚔</div>
+  <div id="kt-subtitle">Match the relics · Claim the glory</div>
+  <div id="kt-hud">
+    <div class="kt-hud-item">
+      <span class="kt-hud-label">Level</span>
+      <span class="kt-hud-value" id="kt-level">1</span>
+    </div>
+    <div class="kt-hud-item kt-timer-bar-wrap">
+      <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
+        <span class="kt-hud-label">⏳ Time</span>
+        <span class="kt-hud-value" id="kt-timer-val">100</span>
+      </div>
+      <div id="kt-timer-bar-bg"><div id="kt-timer-bar" style="width:100%"></div></div>
+    </div>
+    <div class="kt-hud-item">
+      <span class="kt-hud-label">Tiles</span>
+      <span class="kt-hud-value" id="kt-tiles-left">4</span>
+    </div>
+    <div class="kt-hud-item">
+      <span class="kt-hud-label">Pairs</span>
+      <span class="kt-hud-value" id="kt-pairs">0</span>
+    </div>
+  </div>
+  <div id="kt-wrap">
+    <div id="kt-board"></div>
+    <div id="kt-overlay" style="display:none"></div>
+  </div>
+  <div id="kt-footer">
+    <button class="kt-btn kt-btn-secondary" onclick="ktTryAgain()">↺ Try Again</button>
+    <button class="kt-btn kt-btn-primary" onclick="ktNextLevel()" id="kt-next-btn" style="display:none">Next Level ➜</button>
+  </div>
+</div>
+
+<script>
+const LEVELS = [
+  {level:1,timer:100,tiles:4},
+  {level:2,timer:95,tiles:6},
+  {level:3,timer:90,tiles:8},
+  {level:4,timer:85,tiles:10},
+  {level:5,timer:80,tiles:12},
+  {level:6,timer:75,tiles:14},
+  {level:7,timer:70,tiles:16},
+  {level:8,timer:65,tiles:18},
+  {level:9,timer:60,tiles:20},
+  {level:10,timer:55,tiles:22},
+  {level:11,timer:50,tiles:24},
+  {level:12,timer:45,tiles:26},
+  {level:13,timer:40,tiles:28},
+  {level:14,timer:35,tiles:30},
+  {level:15,timer:30,tiles:32},
+  {level:16,timer:25,tiles:32},
+  {level:17,timer:20,tiles:32},
+  {level:18,timer:20,tiles:32},
+  {level:19,timer:20,tiles:32},
+  {level:20,timer:20,tiles:32},
+];
+
+const ICONS = [
+  '🦁','🐯','🦊','🐺','🦅','🦉','🐉','🦄','🦋','🦚',
+  '🐻','🦌','🐸','🦜','🦩','🦞','🐬','🦈','🦖','🦕',
+  '💎','💍','👑','⚔️','🛡️','🗡️','🏹','🪃','🔱','⚙️',
+  '🪵','🔨','🪚','🪛','🔧','🪝','🗝️','⚗️','🧪','🪬',
+  '🍎','🌹','🌻','🍄','🌿','🪨','🕯️','🧲','🎭','🎲',
+  '🍕','🥐','🧁','🍯','🫙','🧇','🥩','🍖','🫕','🪔',
+  '🌙','⭐','☄️','🌊','🌋','🏔️','🌪️','🌈','🔮','🪩',
+  '🎯','🎪','🎨','🎻','🥁','🪗','🎸','🎺','🪈','🎵',
+];
+
+let curLevel = 0;
+let timeLeft = 0;
+let maxTime = 100;
+let timerInterval = null;
+let flipped = [];
+let matched = 0;
+let totalPairs = 0;
+let locked = false;
+let gameOver = false;
+
+function shuffle(arr) {
+  for (let i = arr.length-1; i>0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]] = [arr[j],arr[i]];
+  }
+  return arr;
+}
+
+function buildBoard(lvl) {
+  const cfg = LEVELS[lvl];
+  totalPairs = cfg.tiles / 2;
+  matched = 0;
+  flipped = [];
+  locked = false;
+  gameOver = false;
+
+  const pool = shuffle([...ICONS]).slice(0, totalPairs);
+  const cards = shuffle([...pool, ...pool]);
+
+  const board = document.getElementById('kt-board');
+  board.innerHTML = '';
+
+  const cols = cfg.tiles <= 8 ? cfg.tiles/2 :
+               cfg.tiles <= 12 ? 4 :
+               cfg.tiles <= 20 ? 5 :
+               cfg.tiles <= 24 ? 6 : 8;
+  board.style.gridTemplateColumns = `repeat(${cols}, 80px)`;
+
+  cards.forEach((icon, i) => {
+    const tile = document.createElement('div');
+    tile.className = 'kt-tile';
+    tile.dataset.icon = icon;
+    tile.dataset.idx = i;
+    tile.innerHTML = `<div class="kt-tile-inner"><div class="kt-tile-face kt-tile-back"></div><div class="kt-tile-face kt-tile-front">${icon}</div></div>`;
+    tile.addEventListener('click', () => onTileClick(tile));
+    board.appendChild(tile);
+  });
+
+  document.getElementById('kt-level').textContent = cfg.level;
+  document.getElementById('kt-tiles-left').textContent = cfg.tiles;
+  document.getElementById('kt-pairs').textContent = '0';
+  document.getElementById('kt-next-btn').style.display = 'none';
+  hideOverlay();
+  startTimer(cfg.timer);
+}
+
+function startTimer(seconds) {
+  clearInterval(timerInterval);
+  timeLeft = seconds;
+  maxTime = seconds;
+  updateTimerUI();
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    updateTimerUI();
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      endGame('timeout');
+    }
+  }, 1000);
+}
+
+function updateTimerUI() {
+  const el = document.getElementById('kt-timer-val');
+  const bar = document.getElementById('kt-timer-bar');
+  el.textContent = timeLeft;
+  const pct = Math.max(0, (timeLeft / maxTime) * 100);
+  bar.style.width = pct + '%';
+  const danger = timeLeft <= 10 || pct < 25;
+  el.classList.toggle('danger', danger);
+  bar.classList.toggle('danger', danger);
+}
+
+function onTileClick(tile) {
+  if (locked || gameOver) return;
+  if (tile.classList.contains('flipped') || tile.classList.contains('matched')) return;
+  if (flipped.length >= 2) return;
+
+  tile.classList.add('flipped');
+  flipped.push(tile);
+
+  if (flipped.length === 2) {
+    locked = true;
+    const [a, b] = flipped;
+    if (a.dataset.icon === b.dataset.icon) {
+      setTimeout(() => {
+        a.classList.add('matched'); a.classList.remove('flipped');
+        b.classList.add('matched'); b.classList.remove('flipped');
+        matched++;
+        document.getElementById('kt-pairs').textContent = matched;
+        const remaining = (totalPairs - matched) * 2;
+        document.getElementById('kt-tiles-left').textContent = remaining;
+        flipped = [];
+        locked = false;
+        if (matched === totalPairs) endGame('win');
+      }, 400);
+    } else {
+      a.classList.add('wrong'); b.classList.add('wrong');
+      setTimeout(() => {
+        a.classList.remove('flipped','wrong');
+        b.classList.remove('flipped','wrong');
+        flipped = [];
+        locked = false;
+      }, 800);
+    }
+  }
+}
+
+function endGame(reason) {
+  clearInterval(timerInterval);
+  gameOver = true;
+  locked = true;
+
+  if (reason === 'win') {
+    if (curLevel >= LEVELS.length - 1) {
+      showOverlay('🏰 Journey Unfinished…',
+        '"Brave knight, thou hast conquered twenty trials of shadow and steel. Yet the realm stirs with deeper mysteries. Rest now, sharpen thy blade, and gather thy courage — for greater treasures and darker dungeons still await thy return."',
+        [{label:'⚔ Play Again', fn:'ktRestart()'}]);
+    } else {
+      showOverlay('✨ Victory!',
+        `Level ${LEVELS[curLevel].level} cleared! The treasure glitters in your hands.`,
+        [{label:'Next Level ➜', fn:'ktNextLevel()'},{label:'↺ Restart', fn:'ktRestart()'}]);
+    }
+  } else if (reason === 'timeout') {
+    showOverlay('💀 Time\'s Up!',
+      'The hourglass has run dry. The dungeon grows dark again…',
+      [{label:'↺ Try Again', fn:'ktTryAgain()'},{label:'⚔ From Start', fn:'ktRestart()'}]);
+  }
+}
+
+function showOverlay(title, msg, btns) {
+  const ov = document.getElementById('kt-overlay');
+  ov.innerHTML = `<div id="kt-overlay-title">${title}</div><div id="kt-overlay-msg">${msg}</div><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">${btns.map(b=>`<button class="kt-btn kt-btn-primary" onclick="${b.fn}">${b.label}</button>`).join('')}</div>`;
+  ov.style.display = 'flex';
+}
+
+function hideOverlay() {
+  document.getElementById('kt-overlay').style.display = 'none';
+}
+
+function ktNextLevel() {
+  if (curLevel < LEVELS.length - 1) curLevel++;
+  buildBoard(curLevel);
+}
+
+function ktTryAgain() {
+  buildBoard(curLevel);
+}
+
+function ktRestart() {
+  curLevel = 0;
+  buildBoard(0);
+}
+
+window.ktNextLevel = ktNextLevel;
+window.ktTryAgain = ktTryAgain;
+window.ktRestart = ktRestart;
+
+buildBoard(0);
+</script>
