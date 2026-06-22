@@ -11,11 +11,11 @@ export function recordLevelResult(gs, { stars }) {
   const id = gs.current.id;
   const save = {
     ...gs.save,
+    currentLevel: Math.min(gs.save.currentLevel + 1, 25),
     completedLevels: gs.save.completedLevels.includes(id)
-      ? gs.save.completedLevels
+      ? [...gs.save.completedLevels]
       : [...gs.save.completedLevels, id],
     stars: { ...gs.save.stars, [id]: Math.max(stars, gs.save.stars[id] || 0) },
   };
-  if (save.currentLevel < 25) save.currentLevel += 1;
   return createGameState(save);
 }

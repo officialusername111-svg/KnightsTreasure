@@ -24,6 +24,7 @@ describe('GameState', () => {
     gs = createGameState({ ...gs.save, currentLevel: 1 });
     gs = recordLevelResult(gs, { stars: 3 });
     expect(gs.save.stars['1-1']).toBe(3);
+    expect(gs.save.completedLevels.filter((x) => x === '1-1').length).toBe(1);
   });
 
   it('does not advance past level 25', () => {
