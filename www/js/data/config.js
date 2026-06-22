@@ -23,6 +23,12 @@ export const ASSETS = {
   ui: 'assets/images/ui/',
   badges: 'assets/images/badges/',
   bgCover: 'assets/images/backgrounds/bg_cover.png',
+  bgInn: 'assets/images/backgrounds/bg_tavern.png',
+  bgBards: 'assets/images/backgrounds/bg_bards_corner.png',
+  bgGamblers: 'assets/images/backgrounds/bg_gamblers_den.png',
+  bgDaily: 'assets/images/backgrounds/bg_daily_duty.png',
+  bgMap: 'assets/images/backgrounds/bg_map.png',
+  characters: 'assets/images/characters/',
 };
 
 // Per-stage backdrop + name (GDD). The home shows the current stage's art full-screen.

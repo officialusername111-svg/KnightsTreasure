@@ -28,19 +28,21 @@ html,body { width:100%; height:100%; background:var(--dark); color:var(--parch);
 
 /* Board */
 #kt-board-wrap { flex:1; overflow:auto; -webkit-overflow-scrolling:touch; position:relative;
-  display:flex; align-items:center; justify-content:center; padding:10px; }
+  display:flex; align-items:center; justify-content:center; padding:6px; }
 #kt-board-wrap::before { content:''; position:absolute; inset:0; background:var(--bg-forest, none) center/cover no-repeat; opacity:.45; }
-#kt-board { position:relative; display:grid; gap:2px; margin:auto; }
+/* Seamless board: tiles sit edge-to-edge (no gap); the board is clipped to one rounded slab. */
+#kt-board { position:relative; display:grid; gap:0; margin:auto; border-radius:12px; overflow:hidden;
+  box-shadow:0 6px 24px rgba(0,0,0,.55); }
 
 .kt-tile { position:relative; aspect-ratio:1; perspective:700px; cursor:pointer; touch-action:manipulation; }
 .kt-tile-inner { width:100%; height:100%; position:relative; transform-style:preserve-3d;
   transition:transform .4s cubic-bezier(.2,.8,.25,1); will-change:transform; }
 .kt-tile.flipped .kt-tile-inner, .kt-tile.matched .kt-tile-inner { transform:rotateY(180deg); }
-.kt-tile.matched { animation:kt-match-pop .4s ease; }
+.kt-tile.matched { animation:kt-match-pop .4s ease; z-index:4; }
 @keyframes kt-match-pop { 0%{transform:scale(1);} 45%{transform:scale(1.08);} 100%{transform:scale(1);} }
-.kt-face { position:absolute; inset:0; border-radius:8px; overflow:hidden;
+.kt-face { position:absolute; inset:0; overflow:hidden;
   backface-visibility:hidden; -webkit-backface-visibility:hidden; }
-.kt-face img { width:100%; height:100%; object-fit:contain; display:block; }
+.kt-face img { width:100%; height:100%; object-fit:cover; display:block; }
 .kt-front { transform:rotateY(180deg); }
 .kt-tile.matched { filter:drop-shadow(0 0 6px rgba(96,176,64,.6)); }
 .kt-tile.wrong .kt-tile-inner { animation:kt-shake .35s ease; }
@@ -65,13 +67,16 @@ html,body { width:100%; height:100%; background:var(--dark); color:var(--parch);
 #kt-overlay { position:absolute; inset:0; display:none; flex-direction:column; align-items:center;
   justify-content:center; gap:13px; background:rgba(6,4,0,.95); text-align:center; padding:24px; z-index:20; }
 #kt-overlay.show { display:flex; }
-/* decorative banner — the child <img> (ui_banner_victory/defeat.png) shows when present and
-   removes itself on error, leaving this CSS ribbon as the fallback */
-.kt-ov-banner { width:min(86%,300px); height:60px; border-radius:8px; display:flex;
-  align-items:center; justify-content:center; }
-.kt-ov-banner img { max-width:100%; max-height:100%; object-fit:contain; }
-.kt-ov-banner.victory { box-shadow:inset 0 0 0 2px var(--gold); background:linear-gradient(180deg,#3a2400,#160d00); }
-.kt-ov-banner.defeat { box-shadow:inset 0 0 0 2px #555; background:linear-gradient(180deg,#2a2a2e,#141416); }
+/* large frameless banner with the result text engraved on its scroll */
+.kt-ov-banner { position:relative; width:min(94%,380px); display:flex; align-items:center; justify-content:center; }
+.kt-ov-banner img { width:100%; max-height:150px; object-fit:contain;
+  filter:drop-shadow(0 5px 14px rgba(0,0,0,.55)); }
+.kt-ov-banner-label { position:absolute; left:50%; transform:translate(-50%,-50%); width:62%; text-align:center;
+  font-family:Georgia,'Times New Roman',serif; font-weight:700; line-height:1.02; letter-spacing:.5px;
+  font-size:clamp(15px,4.6vw,21px); white-space:nowrap; }
+.kt-ov-banner.victory .kt-ov-banner-label { top:59%; font-size:clamp(13px,4.1vw,18px); color:#5a2e00;
+  text-shadow:0 1px 0 rgba(255,248,220,.55); }
+.kt-ov-banner.defeat .kt-ov-banner-label { top:50%; color:#2b2b30; text-shadow:0 1px 0 rgba(255,255,255,.35); }
 .kt-ov-title { font-size:23px; color:var(--gold-lt); letter-spacing:2px; text-shadow:0 0 14px #a07000; }
 .kt-ov-stars { font-size:28px; letter-spacing:4px; }
 .kt-ov-score { width:100%; max-width:260px; background:#120d02; border:1px solid var(--line); border-radius:8px; padding:9px 12px; }

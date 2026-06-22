@@ -8,6 +8,8 @@ export function defaultSave() {
     completedLevels: [],
     stars: {},
     displayName: '',
+    settings: { sound: true, music: true, language: 'EN' },
+    seenIntros: {},
   };
 }
 
@@ -20,6 +22,9 @@ export function migrate(raw) {
   // defensive coercions
   if (!Array.isArray(merged.completedLevels)) merged.completedLevels = [];
   if (!merged.stars || typeof merged.stars !== 'object') merged.stars = {};
+  // deep-merge settings so a partial saved object keeps the new defaults
+  merged.settings = { ...base.settings, ...(merged.settings && typeof merged.settings === 'object' ? merged.settings : {}) };
+  if (!merged.seenIntros || typeof merged.seenIntros !== 'object') merged.seenIntros = {};
   return merged;
 }
 

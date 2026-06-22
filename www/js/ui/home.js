@@ -27,7 +27,7 @@ const COIN_SOURCES = [
   ['Daily login & quests', '+20 and up'],
 ];
 
-export function createHomeScene({ gameState, onPlay, onSection }) {
+export function createHomeScene({ gameState, onPlay, onSection, onMenu }) {
   const save = gameState.save;
   const stage = save.currentStage || 1;
   const pct = Math.round((save.currentLevel / 25) * 100);
@@ -43,12 +43,14 @@ export function createHomeScene({ gameState, onPlay, onSection }) {
     `<div class="kt-home-embers" aria-hidden="true"></div>` +
     `<div class="kt-home-scrim"></div>` +
     `<div class="kt-topbar">` +
-      `<div class="kt-crest"><img src="${ASSETS.badges}badge_apprentice.png" alt=""></div>` +
-      `<div class="kt-crest-info"><b>${name}</b><span>Apprentice Knight</span></div>` +
+      `<div class="kt-ident">` +
+        `<div class="kt-crest"><img src="${ASSETS.badges}badge_apprentice.png" alt="">` +
+          `<span class="kt-crest-lvl">${save.currentLevel}</span></div>` +
+        `<div class="kt-ident-txt"><b>${name}</b><span class="kt-rank">Apprentice Knight</span></div>` +
+      `</div>` +
       `<button type="button" class="kt-icon-btn" id="kt-settings" aria-label="Menu"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="${MENU_ICON}"/></svg></button>` +
     `</div>` +
-    `<div class="kt-resbar">` +
-      `<div class="kt-res"><img src="${ASSETS.badges}badge_apprentice.png" alt=""><span>Lv ${save.currentLevel}</span></div>` +
+    `<div class="kt-res-stack">` +
       `<button type="button" class="kt-res" id="kt-res-stam"><img src="${ASSETS.ui}ui_stamina.png" alt="" onerror="this.onerror=null;this.src='${ASSETS.ui}ui_tankard_full.png'"><span>5/5</span></button>` +
       `<button type="button" class="kt-res kt-res-coin" id="kt-res-coins"><img src="${ASSETS.ui}ui_coin.png" alt=""><span>${save.coins || 0}</span></button>` +
       `<button type="button" class="kt-res" id="kt-res-feats"><img src="${ASSETS.ui}ui_nav_glory.png" alt="" onerror="this.style.display='none'"><span>0</span></button>` +
@@ -59,22 +61,22 @@ export function createHomeScene({ gameState, onPlay, onSection }) {
       `<div class="kt-stage-prog"><div class="kt-stage-bar"><span style="width:${pct}%"></span></div>` +
         `<div class="kt-stage-lvl">Level ${save.currentLevel} / 25</div></div>` +
     `</div>` +
+    `<div class="kt-rail"></div>` +
     `<div class="kt-home-bottom">` +
       `<button type="button" class="kt-home-play"><span class="lbl">Play</span>` +
         `<span class="sub">Continue · Level ${save.currentLevel}</span></button>` +
-      `<div class="kt-home-nav"></div>` +
     `</div>`;
 
-  const nav = scene.querySelector('.kt-home-nav');
+  const rail = scene.querySelector('.kt-rail');
   SECTIONS.forEach((s) => {
     const b = document.createElement('button');
     b.type = 'button';
-    b.className = 'kt-nav-btn';
+    b.className = 'kt-rail-btn';
     b.innerHTML =
       `<img class="ic" src="${ASSETS.ui}${s.icon}.png" alt="" onerror="this.style.display='none'">` +
       `<span class="lbl">${s.label}</span><span class="soon">soon</span>`;
     b.addEventListener('click', () => onSection(s.key));
-    nav.appendChild(b);
+    rail.appendChild(b);
   });
 
   scene.querySelector('.kt-home-play').addEventListener('click', onPlay);
@@ -83,9 +85,7 @@ export function createHomeScene({ gameState, onPlay, onSection }) {
   scene.querySelector('#kt-res-stam').addEventListener('click', () =>
     showInfo(scene, 'Stamina', `<p>Each level costs <b>1 stamina</b>. It refills slowly over time, or rest and drink at <b>The Inn</b> to restore it.</p>`)
   );
-  scene.querySelector('#kt-settings').addEventListener('click', () =>
-    showInfo(scene, 'Settings', `<p>Sound, language and more options arrive in a later chapter, Sir Knight.</p>`)
-  );
+  scene.querySelector('#kt-settings').addEventListener('click', () => onMenu && onMenu());
 
   const embers = scene.querySelector('.kt-home-embers');
   for (let i = 0; i < 14; i++) {

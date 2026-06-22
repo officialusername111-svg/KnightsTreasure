@@ -15,7 +15,7 @@ function shuffle(arr) {
   return a;
 }
 
-export function createGameScene({ gameState, adapter, bus, onAdvance, onHome }) {
+export function createGameScene({ gameState, adapter, bus, onAdvance, onHome, onStory, onSettings }) {
   const level = gameState.current;
   let match = createMatchState({ pairs: level.pairs, iconPool: shuffle(ICON_POOL), shuffle });
   let timeLeft = level.timeLimit;
@@ -40,11 +40,15 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onHome }) 
 
   const boardWrap = document.createElement('div');
   boardWrap.id = 'kt-board-wrap';
-  boardWrap.style.setProperty('--bg-forest', `url("${ASSETS.bgForest}")`);
+  // Absolute URL: a relative url() inside a CSS custom property resolves against the
+  // stylesheet that consumes it (/css/), not the document — which 404s. (See home.js.)
+  boardWrap.style.setProperty('--bg-forest', `url("${new URL(ASSETS.bgForest, document.baseURI).href}")`);
   const board = document.createElement('div');
   board.id = 'kt-board';
   board.style.gridTemplateColumns = `repeat(${level.grid.cols}, 1fr)`;
-  board.style.width = `min(96vw, ${level.grid.cols * 112}px)`;
+  // Fill the available width (bigger tiles, no wasted margins), capped so very small
+  // grids don't blow up on wide screens.
+  board.style.width = `min(100%, ${level.grid.cols * 148}px)`;
   boardWrap.appendChild(board);
 
   const tray = document.createElement('div');
@@ -53,8 +57,10 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onHome }) 
 
   const footer = document.createElement('div');
   footer.id = 'kt-footer';
-  footer.innerHTML = `<button type="button" class="kt-foot-home">Home</button><button type="button">Story</button><button type="button">Settings</button>`;
+  footer.innerHTML = `<button type="button" class="kt-foot-home">Home</button><button type="button" class="kt-foot-story">Story</button><button type="button" class="kt-foot-settings">Settings</button>`;
   footer.querySelector('.kt-foot-home').addEventListener('click', () => onHome && onHome());
+  footer.querySelector('.kt-foot-story').addEventListener('click', () => onStory && onStory());
+  footer.querySelector('.kt-foot-settings').addEventListener('click', () => onSettings && onSettings());
 
   const overlay = document.createElement('div');
   overlay.id = 'kt-overlay';
@@ -167,8 +173,8 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onHome }) 
     finished = true;
     stopTimer();
     showOverlay(
-      `<div class="kt-ov-banner defeat"><img src="${ASSETS.ui}ui_banner_defeat.png" alt="" onerror="this.remove()"></div>` +
-      `<div class="kt-ov-title">${TEXT.lose}</div>`,
+      `<div class="kt-ov-banner defeat"><img src="${ASSETS.ui}ui_banner_defeat.png" alt="" onerror="this.remove()">` +
+        `<span class="kt-ov-banner-label">${TEXT.lose}</span></div>`,
       [{ label: TEXT.retry, fn: () => onAdvance(gameState) }]
     );
   }
@@ -183,8 +189,8 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onHome }) 
         `<div class="row" style="color:#a05040;"><span>Mistakes ×50</span><span>−${match.mistakes * 50}</span></div>` +
       `</div>`;
     showOverlay(
-      `<div class="kt-ov-banner victory"><img src="${ASSETS.ui}ui_banner_victory.png" alt="" onerror="this.remove()"></div>` +
-      `<div class="kt-ov-title">${TEXT.win}</div>` +
+      `<div class="kt-ov-banner victory"><img src="${ASSETS.ui}ui_banner_victory.png" alt="" onerror="this.remove()">` +
+        `<span class="kt-ov-banner-label">${TEXT.win}</span></div>` +
       `<div class="kt-ov-stars" id="kt-ov-stars"></div>` +
       breakdown,
       [{ label: TEXT.next, fn: () => onAdvance(advanced) }]
