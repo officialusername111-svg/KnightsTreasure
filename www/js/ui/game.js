@@ -15,7 +15,7 @@ function shuffle(arr) {
   return a;
 }
 
-export function createGameScene({ gameState, adapter, bus, onAdvance }) {
+export function createGameScene({ gameState, adapter, bus, onAdvance, onHome }) {
   const level = gameState.current;
   let match = createMatchState({ pairs: level.pairs, iconPool: shuffle(ICON_POOL), shuffle });
   let timeLeft = level.timeLimit;
@@ -53,7 +53,8 @@ export function createGameScene({ gameState, adapter, bus, onAdvance }) {
 
   const footer = document.createElement('div');
   footer.id = 'kt-footer';
-  footer.innerHTML = `<button type="button">Story</button><button type="button">⚙ Settings</button>`;
+  footer.innerHTML = `<button type="button" class="kt-foot-home">Home</button><button type="button">Story</button><button type="button">Settings</button>`;
+  footer.querySelector('.kt-foot-home').addEventListener('click', () => onHome && onHome());
 
   const overlay = document.createElement('div');
   overlay.id = 'kt-overlay';

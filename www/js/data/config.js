@@ -22,6 +22,7 @@ export const ASSETS = {
   bgForest: 'assets/images/backgrounds/bg_stage1_forest.png',
   ui: 'assets/images/ui/',
   badges: 'assets/images/badges/',
+  bgCover: 'assets/images/backgrounds/bg_cover.png',
 };
 
 export const TEXT = {

@@ -4,12 +4,24 @@ import { createGameState } from './core/state.js';
 import { createEventBus } from './core/eventBus.js';
 import { createSceneManager } from './ui/sceneManager.js';
 import { createGameScene } from './ui/game.js';
+import { createHomeScene, SECTION_TITLES } from './ui/home.js';
+import { createPlaceholderScene } from './ui/placeholder.js';
 
 async function boot() {
   const adapter = createStorageAdapter();
   const bus = createEventBus();
   const scenes = createSceneManager(document.getElementById('app'));
   let gameState = createGameState(await loadSave(adapter));
+
+  function showHome() {
+    scenes.mount(
+      createHomeScene({
+        gameState,
+        onPlay: () => showGame(gameState),
+        onSection: (key) => showPlaceholder(key),
+      })
+    );
+  }
 
   function showGame(gs) {
     gameState = gs;
@@ -19,11 +31,21 @@ async function boot() {
         adapter,
         bus,
         onAdvance: (next) => showGame(next),
+        onHome: () => showHome(),
       })
     );
   }
 
-  showGame(gameState);
+  function showPlaceholder(key) {
+    scenes.mount(
+      createPlaceholderScene({
+        title: SECTION_TITLES[key] || 'Coming soon',
+        onBack: () => showHome(),
+      })
+    );
+  }
+
+  showHome();
 }
 
 boot();
