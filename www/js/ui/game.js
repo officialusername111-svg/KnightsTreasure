@@ -22,6 +22,7 @@ export function createGameScene({ gameState, adapter, bus, onAdvance }) {
   let combo = 0;
   let maxCombo = 0;
   let timerId = null;
+  let mismatchTimer = null;
   let finished = false;
 
   const scene = document.createElement('div');
@@ -96,8 +97,23 @@ export function createGameScene({ gameState, adapter, bus, onAdvance }) {
     return Math.max(0, maxCombo - 2) * 20;
   }
 
+  // Flip a shown mismatch back down immediately (used by the timeout and by an
+  // interrupting tap, so the player never waits on the flip-memory window).
+  function resolvePending() {
+    if (mismatchTimer) {
+      clearTimeout(mismatchTimer);
+      mismatchTimer = null;
+    }
+    match = resolveMismatch(match);
+    tileEls.forEach((e) => e && e.classList.remove('wrong'));
+    syncBoard();
+  }
+
   function onTap(index) {
     if (finished) return;
+    // A mismatched pair is currently shown: any new tap resolves it at once so the
+    // tap is responsive instead of waiting out the flip-memory timer.
+    if (match.locked) resolvePending();
     const { state, result } = tapTile(match, index);
     if (result === 'ignored') return;
     match = state;
@@ -110,14 +126,8 @@ export function createGameScene({ gameState, adapter, bus, onAdvance }) {
     if (result === 'mismatch') {
       combo = 0;
       const el = tileEls[index];
-      if (el) {
-        el.classList.add('wrong');
-        setTimeout(() => el.classList.remove('wrong'), level.flipMemoryMs);
-      }
-      setTimeout(() => {
-        match = resolveMismatch(match);
-        syncBoard();
-      }, level.flipMemoryMs);
+      if (el) el.classList.add('wrong');
+      mismatchTimer = setTimeout(resolvePending, level.flipMemoryMs);
     } else if (result === 'win') {
       win();
     }
