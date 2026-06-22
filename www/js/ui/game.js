@@ -4,6 +4,7 @@ import { recordLevelResult } from '../core/state.js';
 import { persistSave } from '../core/save.js';
 import { ICON_POOL, ASSETS, TEXT } from '../data/config.js';
 import { renderHud } from './hud.js';
+import { burst, popMatch, burstAtEl, staggerIn, comboBanner, countUp, starSlam } from './animations.js';
 
 function shuffle(arr) {
   const a = [...arr];
@@ -81,6 +82,7 @@ export function createGameScene({ gameState, adapter, bus, onAdvance }) {
       })
     );
     syncBoard();
+    staggerIn(tileEls, level.grid.cols);
   }
 
   // Sync existing tile elements to the model (no DOM recreation → flip animates).
@@ -114,6 +116,7 @@ export function createGameScene({ gameState, adapter, bus, onAdvance }) {
     // A mismatched pair is currently shown: any new tap resolves it at once so the
     // tap is responsive instead of waiting out the flip-memory timer.
     if (match.locked) resolvePending();
+    const prevFirst = match.firstPick;
     const { state, result } = tapTile(match, index);
     if (result === 'ignored') return;
     match = state;
@@ -122,6 +125,10 @@ export function createGameScene({ gameState, adapter, bus, onAdvance }) {
     if (result === 'match' || result === 'win') {
       combo += 1;
       maxCombo = Math.max(maxCombo, combo);
+      const pair = [tileEls[prevFirst], tileEls[index]];
+      popMatch(pair);
+      pair.forEach((el) => burstAtEl(scene, el, 10, 'spark'));
+      comboBanner(scene, combo);
     }
     if (result === 'mismatch') {
       combo = 0;
@@ -166,7 +173,7 @@ export function createGameScene({ gameState, adapter, bus, onAdvance }) {
   function showWin(stars, score, timeRemaining, advanced) {
     const breakdown =
       `<div class="kt-ov-score">` +
-        `<div class="total">${TEXT.score}: ${score.toLocaleString()}</div>` +
+        `<div class="total">${TEXT.score}: <span id="kt-ov-score">0</span></div>` +
         `<div class="row"><span>Matches ×100</span><span>+${match.totalPairs * 100}</span></div>` +
         `<div class="row"><span>Time left ×10</span><span>+${timeRemaining * 10}</span></div>` +
         `<div class="row"><span>Combo bonus</span><span>+${comboBonus()}</span></div>` +
@@ -174,10 +181,15 @@ export function createGameScene({ gameState, adapter, bus, onAdvance }) {
       `</div>`;
     showOverlay(
       `<div class="kt-ov-title">${TEXT.win}</div>` +
-      `<div class="kt-ov-stars">${'⭐'.repeat(stars)}${'☆'.repeat(3 - stars)}</div>` +
+      `<div class="kt-ov-stars" id="kt-ov-stars"></div>` +
       breakdown,
       [{ label: TEXT.next, fn: () => onAdvance(advanced) }]
     );
+    // juice: stars slam in, score counts up, warm ember burst behind the panel
+    starSlam(overlay.querySelector('#kt-ov-stars'), stars);
+    countUp(overlay.querySelector('#kt-ov-score'), score);
+    const r = overlay.getBoundingClientRect();
+    burst(overlay, r.width / 2, r.height * 0.38, 22, 'ember');
   }
 
   function showOverlay(html, btns) {

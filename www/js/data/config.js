@@ -20,6 +20,8 @@ export const ASSETS = {
   tiles: 'assets/images/tiles/',
   tileBack: 'assets/images/tiles/tile_back.png',
   bgForest: 'assets/images/backgrounds/bg_stage1_forest.png',
+  ui: 'assets/images/ui/',
+  badges: 'assets/images/badges/',
 };
 
 export const TEXT = {

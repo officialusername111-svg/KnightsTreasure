@@ -1,0 +1,59 @@
+/* Juicy feedback effects — medieval-tuned. GPU props only; respects reduced-motion. */
+
+#kt-game { position:relative; }
+#kt-board-wrap { position:relative; }
+/* effect layer (particles, banners) — never blocks taps */
+.kt-fx { position:absolute; inset:0; overflow:visible; pointer-events:none; z-index:30; }
+
+/* ── match pop + glow ── */
+.kt-tile.kt-pop { animation:kt-pop .42s cubic-bezier(.34,1.56,.64,1); z-index:4; }
+@keyframes kt-pop { 0%{transform:scale(1);} 35%{transform:scale(1.14);} 100%{transform:scale(1);} }
+.kt-tile.kt-pop .kt-tile-inner { box-shadow:0 0 16px 5px rgba(245,200,66,.75); }
+
+/* ── sparks / embers ── */
+.kt-spark, .kt-ember { position:absolute; border-radius:50%; pointer-events:none; will-change:transform,opacity; }
+.kt-spark { width:9px; height:9px; margin:-4.5px 0 0 -4.5px;
+  background:radial-gradient(circle, #fff6cf 0%, #f5c842 45%, rgba(232,85,10,0) 72%);
+  animation:kt-spark .55s ease-out forwards; }
+.kt-ember { width:8px; height:8px; margin:-4px 0 0 -4px;
+  background:radial-gradient(circle, #ffd98a 0%, #e8550a 60%, rgba(232,85,10,0) 80%);
+  animation:kt-spark .85s ease-out forwards; }
+@keyframes kt-spark {
+  0%   { transform:translate(0,0) scale(1); opacity:1; }
+  100% { transform:translate(var(--dx,0), var(--dy,0)) scale(.2); opacity:0; }
+}
+
+/* ── board intro (center-out stagger) ── */
+.kt-tile.kt-in { animation:kt-in .42s cubic-bezier(.34,1.56,.64,1) both; animation-delay:var(--in-delay,0ms); }
+@keyframes kt-in { 0%{transform:scale(0); opacity:0;} 70%{transform:scale(1.08);} 100%{transform:scale(1); opacity:1;} }
+
+/* ── combo banner ── */
+.kt-banner { position:absolute; left:50%; top:38%; transform:translate(-50%,-50%); white-space:nowrap;
+  font-family:Georgia,serif; font-weight:700; font-size:clamp(20px,6vw,34px); color:var(--gold-lt);
+  text-shadow:0 2px 0 #6a3e00, 0 0 18px rgba(232,85,10,.7); padding:6px 22px;
+  background:linear-gradient(180deg, rgba(60,30,0,.88), rgba(20,10,0,.88));
+  border:1px solid var(--gold); border-radius:30px; pointer-events:none;
+  animation:kt-banner 1.05s ease forwards; }
+@keyframes kt-banner {
+  0%   { opacity:0; transform:translate(-50%,-50%) scale(.5); }
+  18%  { opacity:1; transform:translate(-50%,-50%) scale(1.12); }
+  32%  { transform:translate(-50%,-50%) scale(1); }
+  80%  { opacity:1; transform:translate(-50%,-60%) scale(1); }
+  100% { opacity:0; transform:translate(-50%,-95%) scale(1); }
+}
+
+/* ── win stars (slam in one-by-one) ── */
+.kt-ov-stars { display:flex; gap:8px; justify-content:center; font-size:36px; line-height:1; }
+.kt-star { color:#4a3a1a; }
+.kt-star.on { color:var(--gold-lt); text-shadow:0 0 14px rgba(245,200,66,.85);
+  animation:kt-star-slam .35s cubic-bezier(.34,1.56,.64,1) both; }
+@keyframes kt-star-slam {
+  0%   { transform:scale(2.6) rotate(-20deg); opacity:0; }
+  60%  { transform:scale(.88) rotate(2deg); }
+  100% { transform:scale(1) rotate(0); opacity:1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kt-tile.kt-pop, .kt-tile.kt-in, .kt-banner, .kt-star.on { animation:none; }
+  .kt-spark, .kt-ember { display:none; }
+}

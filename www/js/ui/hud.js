@@ -1,13 +1,13 @@
-import { TEXT } from '../data/config.js';
+import { TEXT, ASSETS } from '../data/config.js';
 
 export function renderHud({ stage, level, timeLimit, coins, name, rank }) {
   const el = document.createElement('div');
   el.id = 'kt-hud';
   el.innerHTML =
     `<div class="kt-hud-top">` +
-      `<div class="kt-badge">♞</div>` +
+      `<div class="kt-badge"><img src="${ASSETS.badges}badge_apprentice.png" alt=""></div>` +
       `<div class="kt-name"><b>${name}</b><span>${rank}</span></div>` +
-      `<div class="kt-coins">🪙 <span id="kt-coins-val">${coins}</span></div>` +
+      `<div class="kt-coins"><img src="${ASSETS.ui}ui_coin.png" alt=""> <span id="kt-coins-val">${coins}</span></div>` +
     `</div>` +
     `<div class="kt-stats">` +
       `<div class="kt-stat"><div class="lbl">${TEXT.stageLabel}</div><div class="val">${stage}</div></div>` +
