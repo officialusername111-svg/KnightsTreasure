@@ -110,11 +110,17 @@
 2D cartoon medieval game art, palette of dark iron, rich brown wood and antique gold, plain flat neutral-grey background, no text, no watermark. A single square memory-game tile back: dark engraved iron-and-wood design with an antique-gold filigree border and a faint embossed crossed-swords crest in the center, slightly worn, flat top-down, centered, square.
 ```
 
-### Tile front icons (12) — ⬜  *(run once per subject; or skip and keep emoji)*
+### Tile front icons (48) — ⬜ FRAMED (D16) — each icon image IS the whole tile face
+Run once per subject. The frame + inset panel must be identical on every tile so the board reads as a uniform set — only the central object changes.
 ```
-2D cartoon medieval game icon, bold clean outline, glossy, antique-gold rim, palette of crimson, gold, silver and brown, plain flat neutral-grey background, no text, no watermark. A single centered medieval game icon of a {SUBJECT}, strong readable silhouette at small size, square.
+2D cartoon medieval game memory tile, square. An ornate antique-gold square frame around a dark crimson-and-brown inset panel, with a single centered {SUBJECT} inside in a silver / gold / crimson palette, bold clean outline, soft cel shading, glossy, readable at small size. The frame and inset panel must look IDENTICAL on every tile — only the central object changes. Plain flat neutral-grey background outside the tile, no text, no watermark.
 ```
-Replace `{SUBJECT}` with each: `knight's sword`, `round shield`, `longbow`, `golden crown`, `blue gem`, `iron key`, `red potion flask`, `rolled scroll`, `steel helmet`, `gold coin`, `silver ring`, `lit candle`.
+`{SUBJECT}` → file (`tile_<name>.png`). All 48 use this framed prompt (the original 12 are re-generated framed for consistency):
+- **Original 12:** sword→`tile_sword` · round shield→`tile_shield` · longbow→`tile_bow` · crown→`tile_crown` · gem→`tile_gem` · iron key→`tile_key` · potion flask→`tile_potion` · scroll→`tile_scroll` · helmet→`tile_helmet` · gold coin→`tile_coin` · ring→`tile_ring` · lit candle→`tile_candle`
+- **Beasts:** dragon→`tile_dragon` · wolf→`tile_wolf` · stag→`tile_stag` · owl→`tile_owl` · falcon→`tile_falcon` · boar→`tile_boar` · warhorse→`tile_warhorse` · serpent→`tile_serpent` · griffin→`tile_griffin`
+- **Treasure/relics:** chalice→`tile_chalice` · amulet→`tile_amulet` · crystal orb→`tile_orb` · scepter→`tile_scepter` · gold ingot→`tile_ingot` · treasure chest→`tile_chest` · holy grail→`tile_grail` · rune stone→`tile_rune` · jeweled goblet→`tile_goblet`
+- **Arms/armor:** axe→`tile_axe` · mace→`tile_mace` · dagger→`tile_dagger` · spear→`tile_spear` · crossbow→`tile_crossbow` · gauntlet→`tile_gauntlet` · war hammer→`tile_warhammer` · flail→`tile_flail` · buckler→`tile_buckler`
+- **Provisions/nature:** apple→`tile_apple` · bread loaf→`tile_bread` · cheese wedge→`tile_cheese` · turkey leg→`tile_turkey` · grapes→`tile_grapes` · mushroom→`tile_mushroom` · acorn→`tile_acorn` · honey pot→`tile_honey` · wheat sheaf→`tile_wheat`
 
 ---
 
@@ -261,16 +267,11 @@ a gold coin with a crest → `ui_coin`; a filled gold star → `ui_star_full`; a
 ---
 
 ## OUTSTANDING TO GENERATE — ✅ ALL DONE (as of `_new_asset_3`, 2026-06-21)
-**A** backgrounds @9:16 (batch 3), **C** stage badges (batch 3), **D** rank metals — all 7 ranks (batch 3), and **B** the 12 frameless tile icons (`_new_asset_3`). **No art remains to generate** — only processing into `www/assets/images/`.
+**A** backgrounds @9:16 (batch 3), **C** stage badges (batch 3), **D** rank metals — all 7 ranks (batch 3). **B** tiles: per D16 the board now uses **48 FRAMED** tiles (section 2) — owner regenerating; the rest of the art set is complete.
 
 ### A. Backgrounds — ✅ DONE (re-generated at 9:16 portrait in `_new_assets_2`).
 
-### B. Tile-front icons (12) — ✅ DONE (frameless, in `_new_asset_3`) — for reference, the prompt used was:
-Decision: tiles get frameless icons (keep frames only on the power-up/HUD UI icons). Run once per subject, square 1:1:
-```
-2D cartoon medieval game icon, single object only, NO frame, NO border, NO backplate, bold clean outline, soft cel shading, palette of crimson, gold, silver and brown, isolated on a plain flat neutral-grey background for clean cut-out, no text, no watermark. A centered {SUBJECT}, strong readable silhouette at small size, square.
-```
-`{SUBJECT}` → file: knight's sword → `tile_sword`; round shield → `tile_shield`; longbow → `tile_bow`; golden crown → `tile_crown`; blue gem → `tile_gem`; iron key → `tile_key`; red potion flask → `tile_potion`; rolled scroll → `tile_scroll`; steel helmet → `tile_helmet`; gold coin → `tile_coin`; silver ring → `tile_ring`; lit candle → `tile_candle`.
+### B. Tile-front icons — ⬜ SUPERSEDED by D16: now **48 FRAMED** tiles (see section 2 "Tile front icons (48)"). The earlier frameless 12 are re-generated framed for a uniform board.
 
 ### C. Stage badges (10) — ✅ DONE (`_new_assets_2`).
 
