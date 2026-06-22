@@ -2,19 +2,30 @@
 
 #kt-home, #kt-placeholder, #kt-name {
   position:relative; flex:1; height:100%; display:flex; flex-direction:column;
-  background:var(--bg-stage, var(--bg-cover, #0d0a15)) center/cover no-repeat; overflow:hidden;
+  background-color:#0d0a15; background-size:cover; background-position:center;
+  background-repeat:no-repeat; overflow:hidden;
 }
 .kt-home-scrim { position:absolute; inset:0; pointer-events:none;
   background:linear-gradient(180deg, rgba(8,5,16,.55) 0%, rgba(8,5,16,.15) 30%, rgba(8,5,16,.35) 60%, rgba(8,5,16,.88) 100%); }
 
-/* top resource bar */
-.kt-topbar { position:relative; z-index:3; display:flex; align-items:center; gap:7px; padding:10px 12px; }
-.kt-res { display:flex; align-items:center; gap:5px; background:rgba(6,4,0,.6); border:1px solid var(--gold);
-  border-radius:999px; padding:3px 10px 3px 5px; color:var(--gold-lt); font-size:13px; font-family:inherit;
-  cursor:pointer; line-height:1; }
-.kt-res img { width:20px; height:20px; object-fit:contain; }
-.kt-icon-btn { margin-left:auto; background:rgba(6,4,0,.6); border:1px solid var(--gold); color:var(--gold-lt);
-  border-radius:10px; width:34px; height:34px; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+/* header: crest (badge + name + rank) + menu */
+.kt-topbar { position:relative; z-index:3; display:flex; align-items:center; gap:11px; padding:13px 14px 7px; }
+.kt-crest { width:46px; height:46px; flex:none; }
+.kt-crest img { width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 2px 4px #000); }
+.kt-crest-info { line-height:1.2; min-width:0; }
+.kt-crest-info b { display:block; color:var(--gold-lt); font-size:18px; font-weight:700; letter-spacing:.5px;
+  text-shadow:0 1px 4px #000; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.kt-crest-info span { color:#caa45a; font-size:10px; letter-spacing:1.5px; text-transform:uppercase; text-shadow:0 1px 2px #000; }
+.kt-icon-btn { margin-left:auto; flex:none; background:rgba(6,4,0,.55); border:1px solid var(--gold); color:var(--gold-lt);
+  border-radius:10px; width:40px; height:40px; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+
+/* resource bar: Lv · stamina · coins · feats */
+.kt-resbar { position:relative; z-index:3; display:flex; gap:8px; padding:0 14px; }
+.kt-res { flex:1; display:flex; align-items:center; justify-content:center; gap:5px; background:rgba(6,4,0,.55);
+  border:1px solid rgba(201,146,42,.5); border-radius:10px; padding:6px; color:var(--gold-lt); font-size:14px;
+  font-family:inherit; cursor:pointer; line-height:1; }
+.kt-res img { width:22px; height:22px; object-fit:contain; }
+.kt-res-coin img { border-radius:50%; }
 
 /* stage heading (upper-centre) */
 .kt-stage-head { position:relative; z-index:2; text-align:center; margin-top:14px; padding:0 18px; }
@@ -38,13 +49,14 @@
 .kt-home-play .lbl { font-size:22px; font-weight:700; letter-spacing:2px; }
 .kt-home-play .sub { font-size:11px; font-weight:700; opacity:.75; }
 
-.kt-home-nav { display:flex; gap:8px; }
+/* one unified bar with thin separators (no box per item), bigger icons */
+.kt-home-nav { display:flex; background:rgba(8,5,1,.72); border:1px solid var(--gold); border-radius:14px; overflow:hidden; }
 .kt-nav-btn { flex:1; position:relative; cursor:pointer; font-family:inherit; color:var(--gold-lt);
-  background:rgba(10,6,2,.66); border:1px solid var(--gold); border-radius:12px; padding:8px 4px 7px;
-  display:flex; flex-direction:column; align-items:center; gap:3px; min-height:58px; }
-.kt-nav-btn:active { transform:translateY(2px); }
-.kt-nav-btn .ic { width:26px; height:26px; object-fit:contain; }
-.kt-nav-btn .lbl { font-size:11px; letter-spacing:.5px; }
+  background:none; border:none; padding:10px 4px 8px; display:flex; flex-direction:column; align-items:center; gap:4px; min-height:70px; }
+.kt-nav-btn:not(:first-child)::before { content:''; position:absolute; left:0; top:14%; bottom:14%; width:1px; background:rgba(201,146,42,.35); }
+.kt-nav-btn:active { background:rgba(245,200,66,.1); }
+.kt-nav-btn .ic { width:40px; height:40px; object-fit:contain; }
+.kt-nav-btn .lbl { font-size:12px; letter-spacing:.5px; }
 .kt-nav-btn .soon { font-size:7px; letter-spacing:1px; text-transform:uppercase; color:#9a7a3a;
   border:1px solid #6b4c1a; border-radius:5px; padding:0 4px; }
 

@@ -5,7 +5,7 @@ import { ASSETS } from '../data/config.js';
 export function createNameEntryScene({ onConfirm }) {
   const scene = document.createElement('div');
   scene.id = 'kt-name';
-  scene.style.setProperty('--bg-stage', `url("${ASSETS.bgCover}")`);
+  scene.style.backgroundImage = `url("${ASSETS.bgCover}")`;
   scene.innerHTML =
     `<div class="kt-home-scrim"></div>` +
     `<div class="kt-name-card">` +

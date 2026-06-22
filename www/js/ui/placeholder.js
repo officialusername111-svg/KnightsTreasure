@@ -4,7 +4,7 @@ import { ASSETS } from '../data/config.js';
 export function createPlaceholderScene({ title, onBack }) {
   const scene = document.createElement('div');
   scene.id = 'kt-placeholder';
-  scene.style.setProperty('--bg-cover', `url("${ASSETS.bgCover}")`);
+  scene.style.backgroundImage = `url("${ASSETS.bgCover}")`;
   scene.innerHTML =
     `<div class="kt-home-scrim"></div>` +
     `<div class="kt-ph-card">` +
