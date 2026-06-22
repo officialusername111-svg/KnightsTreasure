@@ -1,0 +1,18 @@
+node_modules/
+android/
+dist/
+*.log
+.DS_Store
+
+# Reference prototype (has its own git history)
+temp_clone/
+
+# Transient asset staging — final art is committed under www/assets/images/
+.claude/assets/
+.claude/_new_assets/
+.claude/_new_assets_2/
+.claude/_new_asset_3/
+.claude/_*.py
+.claude/plugins/
+.claude/projects/
+.claude/settings.local.json
