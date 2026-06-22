@@ -44,7 +44,7 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onHome }) 
   const board = document.createElement('div');
   board.id = 'kt-board';
   board.style.gridTemplateColumns = `repeat(${level.grid.cols}, 1fr)`;
-  board.style.width = `min(94vw, ${level.grid.cols * 86}px)`;
+  board.style.width = `min(96vw, ${level.grid.cols * 112}px)`;
   boardWrap.appendChild(board);
 
   const tray = document.createElement('div');
@@ -166,9 +166,11 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onHome }) 
   function lose() {
     finished = true;
     stopTimer();
-    showOverlay(`<div class="kt-ov-title">${TEXT.lose}</div>`, [
-      { label: TEXT.retry, fn: () => onAdvance(gameState) },
-    ]);
+    showOverlay(
+      `<div class="kt-ov-banner defeat"><img src="${ASSETS.ui}ui_banner_defeat.png" alt="" onerror="this.remove()"></div>` +
+      `<div class="kt-ov-title">${TEXT.lose}</div>`,
+      [{ label: TEXT.retry, fn: () => onAdvance(gameState) }]
+    );
   }
 
   function showWin(stars, score, timeRemaining, advanced) {
@@ -181,6 +183,7 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onHome }) 
         `<div class="row" style="color:#a05040;"><span>Mistakes ×50</span><span>−${match.mistakes * 50}</span></div>` +
       `</div>`;
     showOverlay(
+      `<div class="kt-ov-banner victory"><img src="${ASSETS.ui}ui_banner_victory.png" alt="" onerror="this.remove()"></div>` +
       `<div class="kt-ov-title">${TEXT.win}</div>` +
       `<div class="kt-ov-stars" id="kt-ov-stars"></div>` +
       breakdown,

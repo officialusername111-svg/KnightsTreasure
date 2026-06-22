@@ -25,6 +25,25 @@ export const ASSETS = {
   bgCover: 'assets/images/backgrounds/bg_cover.png',
 };
 
+// Per-stage backdrop + name (GDD). The home shows the current stage's art full-screen.
+export const STAGE_BG = {
+  1: 'assets/images/backgrounds/bg_stage1_forest.png',
+  2: 'assets/images/backgrounds/bg_stage2_village.png',
+  3: 'assets/images/backgrounds/bg_stage3_river.png',
+  4: 'assets/images/backgrounds/bg_stage4_cave.png',
+  5: 'assets/images/backgrounds/bg_stage5_camp.png',
+  6: 'assets/images/backgrounds/bg_stage6_gates.png',
+  7: 'assets/images/backgrounds/bg_stage7_dungeon.png',
+  8: 'assets/images/backgrounds/bg_stage8_throne.png',
+  9: 'assets/images/backgrounds/bg_stage9_lair.png',
+  10: 'assets/images/backgrounds/bg_stage10_vault.png',
+};
+export const STAGE_NAMES = {
+  1: 'The Forest Path', 2: 'The Village', 3: 'The River Crossing', 4: 'The Dark Cave',
+  5: 'The Bandit Camp', 6: 'The Castle Gates', 7: 'The Dungeon', 8: 'The Throne Room',
+  9: "The Dragon's Lair", 10: 'The Final Treasure',
+};
+
 export const TEXT = {
   appTitle: "Knight's Treasure",
   stageLabel: 'Stage',

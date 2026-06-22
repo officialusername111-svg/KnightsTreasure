@@ -1,11 +1,12 @@
 import { createStorageAdapter } from './platform/storageAdapter.js';
-import { loadSave } from './core/save.js';
+import { loadSave, persistSave } from './core/save.js';
 import { createGameState } from './core/state.js';
 import { createEventBus } from './core/eventBus.js';
 import { createSceneManager } from './ui/sceneManager.js';
 import { createGameScene } from './ui/game.js';
 import { createHomeScene, SECTION_TITLES } from './ui/home.js';
 import { createPlaceholderScene } from './ui/placeholder.js';
+import { createNameEntryScene } from './ui/nameEntry.js';
 
 async function boot() {
   const adapter = createStorageAdapter();
@@ -45,7 +46,20 @@ async function boot() {
     );
   }
 
-  showHome();
+  function showNameEntry() {
+    scenes.mount(
+      createNameEntryScene({
+        onConfirm: (name) => {
+          gameState.save.displayName = name;
+          persistSave(adapter, gameState.save);
+          showHome();
+        },
+      })
+    );
+  }
+
+  if (gameState.save.displayName) showHome();
+  else showNameEntry();
 }
 
 boot();
