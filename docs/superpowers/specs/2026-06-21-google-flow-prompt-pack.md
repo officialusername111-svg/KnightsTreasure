@@ -253,6 +253,26 @@ a gold coin with a crest → `ui_coin`; a filled gold star → `ui_star_full`; a
 
 ---
 
+# 7) HOME REDESIGN + FEEDBACK ASSETS (added 2026-06-22, D17)
+
+⬜ Banners — wide 3:1, transparent, NO text (the localized title stays as in-game text; banner is the decorative flourish):
+- `ui_banner_victory` — `2D cartoon medieval game banner, ornate triumphant gold ribbon scroll flanked by laurel branches and a small crown crest, warm celebratory glow, palette of antique gold, crimson and ivory, empty center for an overlaid title, isolated on plain neutral-grey, no text, no watermark, wide 3:1.`
+- `ui_banner_defeat` — `2D cartoon medieval game banner, a tattered torn ribbon scroll with dull iron-grey and ash tones, a cracked seal and frayed edges, somber, palette of cold grey, charcoal and faded crimson, empty center for an overlaid title, isolated on plain neutral-grey, no text, no watermark, wide 3:1.`
+
+⬜ Stamina icon — square 1:1:
+- `ui_stamina` — `2D cartoon medieval game UI icon, a frothy golden ale tankard with a warm radiant energy aura (vigor/stamina emblem), glossy, bold clean silhouette, antique-gold rim, palette of amber, gold and brown, isolated on plain neutral-grey, no text, no watermark, square.`
+
+⬜ Bottom-nav icons (4) — square 1:1, cohesive gold-emblem style:
+- `ui_nav_quests` — a rolled quest scroll tied with cord and a red wax seal
+- `ui_nav_inn` — a hanging wooden inn signboard with a frothy ale tankard
+- `ui_nav_glory` — a golden laurel wreath encircling a bright star
+- `ui_nav_rank` — a golden world globe topped with a small crown
+  (each: `2D cartoon medieval game UI icon, {SUBJECT}, glossy, antique-gold rim, palette of crimson/gold/silver/brown, isolated on plain neutral-grey, no text, no watermark, square.`)
+
+Reused (no new art): `ui_coin`, `ui_coin_pouch`, `ui_panel_parchment`, `badge_apprentice`, `bg_stage{n}` (full-screen home backdrop), `ui_tankard_full/empty` (5-pip stamina display).
+
+---
+
 # 6) STORE (2)
 
 ⬜ `store/app_icon` — square 1:1

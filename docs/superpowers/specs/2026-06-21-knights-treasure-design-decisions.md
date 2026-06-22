@@ -81,6 +81,20 @@ Per-stage gimmick (one line each): S1 none (pure speed) · S2 timer ticks 1.25×
 - **Power-ups:** a **bottom tray** of owned-power-up chips with counts (max 2 active/level, greyed at 0). Tray space reserved in Plan 1; framework + Raven in Plan 2.
 **Affects:** `config.js` (`ICON_POOL`), Plan 1 Tasks 8–9 (image tiles, forest bg, tray, results-overlay score) — these supersede the plan's emoji/CSS code for the game scene. Match/scoring/state logic unchanged.
 
+### D17 — Home hub redesign + feedback polish (approved 2026-06-22, ref: stage-hub mockup)
+**Decision:** Reshape the home into a **full-bleed stage hub** (reference-inspired):
+- **Background = the current stage's art** (`bg_stage{n}`), full-screen, swapping per stage, with a scrim + ambient embers.
+- **Top resource bar (overlaid):** rank/level · **stamina** (5 max + regen timer) · **coins** · settings. Stamina (Plan 3) and coins (Plan 2) render as display placeholders (5/5, 0) until those systems exist. No gems/seasons/modes/mail (not in GDD).
+- **Upper-center:** stage name ("Stage 1 · The Forest Path") + progress bar ("Level 21/25").
+- **Play** (bottom): "Continue · Level N", costs ⚡1 stamina once stamina exists.
+- **Bottom icon nav:** Quests · The Inn · Glory · Ranks (unbuilt → themed placeholder + Back, per the home-hub work). New nav icons generated.
+- **First-launch name entry:** before the home first appears (no `displayName`), a small parchment interaction asks the knight's name → saves `displayName`. Reuses parchment art.
+- **Bigger tiles:** CSS-only — increase tile/board scale for phone readability. No asset.
+- **Win / Game Over:** results overlay gains a decorative **banner** (`ui_banner_victory` / `ui_banner_defeat`, text-free for i18n) above the existing localized title + stars/score; buttons unchanged (Next Level / Try Again).
+- **How to earn coins:** tapping the coins pill opens a small info panel listing GDD earn sources; uses `ui_coin_pouch`. No new asset.
+**New assets (7):** `ui_banner_victory`, `ui_banner_defeat`, `ui_stamina`, `ui_nav_quests`, `ui_nav_inn`, `ui_nav_glory`, `ui_nav_rank` — prompts in the prompt pack §7.
+**Affects:** `home.js`/`home.css` (full-bleed restyle + nav icons), a new name-entry scene, `game.js` (bigger board CSS, banner in overlay, coins-info panel). Supersedes the first home-hub pass (516f313). Logic modules unchanged.
+
 ---
 
 ## Part B — Core mechanic specifications
