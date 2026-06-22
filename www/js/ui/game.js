@@ -58,21 +58,38 @@ export function createGameScene({ gameState, adapter, bus, onAdvance }) {
 
   scene.append(hud, boardWrap, tray, footer, overlay);
 
-  function tileEl(tile) {
-    const t = document.createElement('div');
-    t.className = 'kt-tile' + (tile.matched ? ' matched' : tile.faceUp ? ' flipped' : '');
-    t.dataset.index = tile.index;
-    t.innerHTML =
-      `<div class="kt-tile-inner">` +
-        `<div class="kt-face kt-back"><img src="${ASSETS.tileBack}" alt=""></div>` +
-        `<div class="kt-face kt-front"><img src="${ASSETS.tiles}${tile.icon}.png" alt=""></div>` +
-      `</div>`;
-    t.addEventListener('click', () => onTap(tile.index));
-    return t;
+  const tileEls = [];
+
+  // Build the tile DOM once so taps only toggle classes — this lets the CSS
+  // 3D-flip transition actually animate (re-creating nodes would snap instead).
+  function buildBoard() {
+    tileEls.length = 0;
+    board.replaceChildren(
+      ...match.tiles.map((tile) => {
+        const t = document.createElement('div');
+        t.className = 'kt-tile';
+        t.dataset.index = tile.index;
+        t.innerHTML =
+          `<div class="kt-tile-inner">` +
+            `<div class="kt-face kt-back"><img src="${ASSETS.tileBack}" alt=""></div>` +
+            `<div class="kt-face kt-front"><img src="${ASSETS.tiles}${tile.icon}.png" alt=""></div>` +
+          `</div>`;
+        t.addEventListener('click', () => onTap(tile.index));
+        tileEls[tile.index] = t;
+        return t;
+      })
+    );
+    syncBoard();
   }
 
-  function renderBoard() {
-    board.replaceChildren(...match.tiles.map(tileEl));
+  // Sync existing tile elements to the model (no DOM recreation → flip animates).
+  function syncBoard() {
+    match.tiles.forEach((tile) => {
+      const el = tileEls[tile.index];
+      if (!el) return;
+      el.classList.toggle('flipped', tile.faceUp && !tile.matched);
+      el.classList.toggle('matched', tile.matched);
+    });
   }
 
   function comboBonus() {
@@ -85,18 +102,21 @@ export function createGameScene({ gameState, adapter, bus, onAdvance }) {
     if (result === 'ignored') return;
     match = state;
     bus.emit('tile:' + result, { index });
-    renderBoard();
+    syncBoard();
     if (result === 'match' || result === 'win') {
       combo += 1;
       maxCombo = Math.max(maxCombo, combo);
     }
     if (result === 'mismatch') {
       combo = 0;
-      const el = board.querySelector(`[data-index="${index}"]`);
-      if (el) el.classList.add('wrong');
+      const el = tileEls[index];
+      if (el) {
+        el.classList.add('wrong');
+        setTimeout(() => el.classList.remove('wrong'), level.flipMemoryMs);
+      }
       setTimeout(() => {
         match = resolveMismatch(match);
-        renderBoard();
+        syncBoard();
       }, level.flipMemoryMs);
     } else if (result === 'win') {
       win();
@@ -185,7 +205,7 @@ export function createGameScene({ gameState, adapter, bus, onAdvance }) {
     timerId = null;
   }
 
-  renderBoard();
+  buildBoard();
   startTimer();
   return scene;
 }
