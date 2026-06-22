@@ -71,6 +71,16 @@ Per-stage gimmick (one line each): S1 none (pure speed) · S2 timer ticks 1.25×
 **Affects:** `ranks.js` derivation (Plan 6) — `rankFor(save)` now also reads total stars (sum of `save.stars`); 3 new rank badges (`badges/badge_champion.png`, `badge_paladin.png`, `badge_grandmaster.png`). **No save change:** derived from existing `stars` map.
 **Override:** swap the star thresholds, or base the post-Commander ranks on a different metric (coins earned, daily-duty streak, leaderboard placement).
 
+### D16 — Game-scene visual direction (approved via mockup 2026-06-22)
+**Decision:** The Stage-1 game scene uses **full custom art, not emoji/CSS**:
+- Tile **fronts** = the custom frameless tile icons (`assets/images/tiles/tile_*.png`); tile **backs** = `tile_back.png`; board sits over `bg_stage1_forest.png`.
+- `ICON_POOL` in `config.js` becomes a list of tile-icon **asset base-names** (e.g. `'tile_sword'`), not emoji. The match engine is unchanged (it matches on the icon string identity); the game scene renders each as `<img src="assets/images/tiles/{icon}.png">`.
+- **Tile-icon set expanded from 12 → 48** for variety (a 12-pair board uses 12 unique icons). The 36 additions (frameless, same prompt as the existing 12), grouped: **Heraldic beasts** — dragon, wolf, stag, owl, falcon, boar, warhorse, serpent, griffin; **Treasure/relics** — chalice, amulet, orb, scepter, ingot, chest, grail, rune, goblet; **Arms/armor** — axe, mace, dagger, spear, crossbow, gauntlet, warhammer, flail, buckler; **Provisions/nature** — apple, bread, cheese, turkey, grapes, mushroom, acorn, honey, wheat. Files: `tile_<name>.png`. (The existing 12 are enough to build/run Stage 1; the 36 add variety when generated.)
+- **HUD (in-play):** rank badge + name, coins (top-right), Stage / Level / Time. **No live score** in-play.
+- **Score:** the leaderboard metric — shown only on the **Level Cleared results overlay** (with breakdown) and submitted to the leaderboard; not a live HUD number.
+- **Power-ups:** a **bottom tray** of owned-power-up chips with counts (max 2 active/level, greyed at 0). Tray space reserved in Plan 1; framework + Raven in Plan 2.
+**Affects:** `config.js` (`ICON_POOL`), Plan 1 Tasks 8–9 (image tiles, forest bg, tray, results-overlay score) — these supersede the plan's emoji/CSS code for the game scene. Match/scoring/state logic unchanged.
+
 ---
 
 ## Part B — Core mechanic specifications
