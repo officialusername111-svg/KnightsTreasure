@@ -8,6 +8,13 @@
 /* A section mounted as an overlay above the current scene (Settings / Story log). */
 .kt-sec.kt-scene-overlay { position:absolute; inset:0; z-index:30; flex:none; }
 
+/* transient toast (purchases, rewards, gentle errors) */
+.kt-toast { position:absolute; left:50%; bottom:26px; transform:translate(-50%,12px); z-index:60;
+  max-width:84%; text-align:center; background:rgba(10,7,2,.94); color:var(--gold-lt); font-size:13px;
+  padding:10px 16px; border-radius:999px; box-shadow:0 6px 20px rgba(0,0,0,.6), inset 0 0 0 1px rgba(201,146,42,.5);
+  opacity:0; transition:opacity .22s ease, transform .22s ease; pointer-events:none; }
+.kt-toast.show { opacity:1; transform:translate(-50%,0); }
+
 /* shared top bar: back + sub/title + coin balance */
 .kt-sec-top { position:relative; z-index:3; display:flex; align-items:center; gap:12px; padding:14px 14px 8px; }
 .kt-sec-back { flex:none; width:42px; height:42px; border-radius:11px; background:rgba(6,4,0,.5);
@@ -76,6 +83,8 @@
 
 .kt-task { background:rgba(8,5,1,.7); border:1px solid rgba(201,146,42,.3); border-radius:14px;
   padding:13px; display:flex; flex-direction:column; gap:11px; }
+.kt-task.is-claimed { opacity:.62; }
+.kt-task-go[disabled] { opacity:.7; cursor:default; }
 .kt-task-head { display:flex; gap:12px; align-items:flex-start; }
 .kt-task-ic { width:48px; height:48px; flex:none; display:flex; align-items:center; justify-content:center;
   background:radial-gradient(circle at 50% 38%, rgba(60,40,12,.8), rgba(6,4,0,.5)); border-radius:11px;
@@ -251,6 +260,8 @@
 .kt-song.locked { cursor:default; }
 .kt-song.locked .pl { color:#6b4c1a; }
 .kt-tale { cursor:pointer; }
+.kt-buy.heard { background:none; color:#7a6438; box-shadow:inset 0 0 0 1px rgba(201,146,42,.3); cursor:default;
+  text-transform:uppercase; letter-spacing:1px; font-size:10px; padding:6px 12px; }
 
 /* ===== Gambler's Den ===== */
 .kt-table { display:flex; flex-direction:column; align-items:center; gap:14px; border:1px solid rgba(201,146,42,.3);
@@ -273,4 +284,4 @@
   gap:8px; color:#2a1400; font-family:inherit; font-weight:700; font-size:18px; letter-spacing:1px; cursor:pointer;
   background:linear-gradient(180deg,#f6d57a,#e0a02a 55%,#b9760f); box-shadow:0 3px 0 #6a3e00,0 6px 16px rgba(0,0,0,.5); }
 .kt-roll:active { transform:translateY(2px); box-shadow:0 1px 0 #6a3e00; }
-.kt-roll img { width:20px; height:20px; }
+.kt-roll img { width:20px; height:20px; object-fit:contain; }

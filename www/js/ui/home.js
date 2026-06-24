@@ -1,4 +1,7 @@
 import { ASSETS, STAGE_BG, STAGE_NAMES } from '../data/config.js';
+import { rankFor, totalStars } from '../systems/ranks.js';
+import * as stamina from '../systems/stamina.js';
+import { COIN_SOURCES } from '../systems/economy.js';
 
 const MENU_ICON = 'M4 7h16M4 12h16M4 17h16';
 
@@ -16,22 +19,14 @@ export const SECTION_TITLES = {
   rank: 'Global Rank',
 };
 
-const COIN_SOURCES = [
-  ['Complete any level', '+10'],
-  ['1 / 2 / 3-star clear', '+5 / +15 / +30'],
-  ['First time clearing a level', '+20'],
-  ['No power-up used', '+15'],
-  ['No mistakes', '+20'],
-  ['Speedy clear', '+10'],
-  ['Combo chains', '+3 to +20'],
-  ['Daily login & quests', '+20 and up'],
-];
-
-export function createHomeScene({ gameState, onPlay, onSection, onMenu }) {
+export function createHomeScene({ gameState, onPlay, onSection, onMenu, onMap }) {
   const save = gameState.save;
   const stage = save.currentStage || 1;
   const pct = Math.round((save.currentLevel / 25) * 100);
   const name = save.displayName || 'Knight';
+  const rank = rankFor(save);
+  const stam = stamina.current(save);
+  const canPlay = stam >= 1;
 
   const scene = document.createElement('div');
   scene.id = 'kt-home';
@@ -44,27 +39,27 @@ export function createHomeScene({ gameState, onPlay, onSection, onMenu }) {
     `<div class="kt-home-scrim"></div>` +
     `<div class="kt-topbar">` +
       `<div class="kt-ident">` +
-        `<div class="kt-crest"><img src="${ASSETS.badges}badge_apprentice.png" alt="">` +
+        `<div class="kt-crest"><img src="${ASSETS.badges}${rank.badge}.png" alt="" onerror="this.onerror=null;this.src='${ASSETS.badges}badge_apprentice.png'">` +
           `<span class="kt-crest-lvl">${save.currentLevel}</span></div>` +
-        `<div class="kt-ident-txt"><b>${name}</b><span class="kt-rank">Apprentice Knight</span></div>` +
+        `<div class="kt-ident-txt"><b>${name}</b><span class="kt-rank">${rank.name}</span></div>` +
       `</div>` +
       `<button type="button" class="kt-icon-btn" id="kt-settings" aria-label="Menu"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="${MENU_ICON}"/></svg></button>` +
     `</div>` +
     `<div class="kt-res-stack">` +
-      `<button type="button" class="kt-res" id="kt-res-stam"><img src="${ASSETS.ui}ui_stamina.png" alt="" onerror="this.onerror=null;this.src='${ASSETS.ui}ui_tankard_full.png'"><span>5/5</span></button>` +
-      `<button type="button" class="kt-res kt-res-coin" id="kt-res-coins"><img src="${ASSETS.ui}ui_coin.png" alt=""><span>${save.coins || 0}</span></button>` +
-      `<button type="button" class="kt-res" id="kt-res-feats"><img src="${ASSETS.ui}ui_nav_glory.png" alt="" onerror="this.style.display='none'"><span>0</span></button>` +
+      `<button type="button" class="kt-res" id="kt-res-stam"><img src="${ASSETS.ui}ui_stamina.png" alt="" onerror="this.onerror=null;this.src='${ASSETS.ui}ui_tankard_full.png'"><span id="kt-stam-val">${stam}/${stamina.MAX_STAMINA}</span></button>` +
+      `<button type="button" class="kt-res kt-res-coin" id="kt-res-coins"><img src="${ASSETS.ui}ui_coin.png" alt=""><span id="kt-coins-val">${save.coins || 0}</span></button>` +
+      `<button type="button" class="kt-res" id="kt-res-feats"><img src="${ASSETS.ui}ui_star_full.png" alt="" onerror="this.style.display='none'"><span>${totalStars(save)}</span></button>` +
     `</div>` +
-    `<div class="kt-stage-head">` +
+    `<button type="button" class="kt-stage-head" id="kt-stage-head">` +
       `<div class="kt-stage-no">Stage ${stage}</div>` +
       `<h1 class="kt-stage-name">${STAGE_NAMES[stage] || 'The Forest Path'}</h1>` +
       `<div class="kt-stage-prog"><div class="kt-stage-bar"><span style="width:${pct}%"></span></div>` +
-        `<div class="kt-stage-lvl">Level ${save.currentLevel} / 25</div></div>` +
-    `</div>` +
+        `<div class="kt-stage-lvl">Level ${save.currentLevel} / 25 · view map</div></div>` +
+    `</button>` +
     `<div class="kt-rail"></div>` +
     `<div class="kt-home-bottom">` +
-      `<button type="button" class="kt-home-play"><span class="lbl">Play</span>` +
-        `<span class="sub">Continue · Level ${save.currentLevel}</span></button>` +
+      `<button type="button" class="kt-home-play${canPlay ? '' : ' depleted'}"><span class="lbl">Play</span>` +
+        `<span class="sub">${canPlay ? `Continue · Level ${save.currentLevel}` : 'Out of stamina — rest at the Inn'}</span></button>` +
     `</div>`;
 
   const rail = scene.querySelector('.kt-rail');
@@ -74,18 +69,27 @@ export function createHomeScene({ gameState, onPlay, onSection, onMenu }) {
     b.className = 'kt-rail-btn';
     b.innerHTML =
       `<img class="ic" src="${ASSETS.ui}${s.icon}.png" alt="" onerror="this.style.display='none'">` +
-      `<span class="lbl">${s.label}</span><span class="soon">soon</span>`;
+      `<span class="lbl">${s.label}</span>`;
     b.addEventListener('click', () => onSection(s.key));
     rail.appendChild(b);
   });
 
-  scene.querySelector('.kt-home-play').addEventListener('click', onPlay);
+  scene.querySelector('.kt-home-play').addEventListener('click', () => (canPlay ? onPlay() : onSection('inn')));
+  scene.querySelector('#kt-stage-head').addEventListener('click', () => onMap && onMap());
   scene.querySelector('#kt-res-coins').addEventListener('click', () => showCoinInfo(scene));
   scene.querySelector('#kt-res-feats').addEventListener('click', () => onSection('glory'));
   scene.querySelector('#kt-res-stam').addEventListener('click', () =>
-    showInfo(scene, 'Stamina', `<p>Each level costs <b>1 stamina</b>. It refills slowly over time, or rest and drink at <b>The Inn</b> to restore it.</p>`)
+    showInfo(scene, 'Stamina',
+      `<p>Each level costs <b>1 stamina</b>. It refills <b>1 every 30 min</b> (next in <b>${stamina.countdownText(save)}</b>), or rest and drink at <b>The Inn</b> to restore it.</p>`)
   );
   scene.querySelector('#kt-settings').addEventListener('click', () => onMenu && onMenu());
+
+  // Keep the stamina pill live while the home is on screen; self-clears once detached.
+  const stamEl = scene.querySelector('#kt-stam-val');
+  const tick = setInterval(() => {
+    if (!stamEl.isConnected) { clearInterval(tick); return; }
+    stamEl.textContent = `${stamina.current(save)}/${stamina.MAX_STAMINA}`;
+  }, 15000);
 
   const embers = scene.querySelector('.kt-home-embers');
   for (let i = 0; i < 14; i++) {

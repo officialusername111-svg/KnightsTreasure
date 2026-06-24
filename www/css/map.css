@@ -1,0 +1,121 @@
+/* Quest Map (the long road). Vertical stage trail on a golden journey path.
+   Reuses tokens + scrim/section classes from main.css / sections.css / home.css. */
+
+/* ===== overall progress (uses .kt-stage-bar from home.css) ===== */
+.kt-map-overall {
+  background:rgba(8,5,1,.66); border-radius:14px; padding:12px 14px;
+  box-shadow:inset 0 0 0 1px rgba(201,146,42,.25);
+}
+.kt-map-overall-head {
+  display:flex; align-items:baseline; justify-content:space-between; margin-bottom:9px;
+}
+.kt-map-overall-head span {
+  color:#caa45a; font-size:10px; letter-spacing:2px; text-transform:uppercase;
+}
+.kt-map-overall-head b { color:var(--gold-lt); font-size:15px; font-weight:700; }
+
+/* ===== trail: vertical dashed golden path running behind the nodes ===== */
+.kt-map-trail {
+  position:relative; display:flex; flex-direction:column; gap:14px; padding:6px 0 4px;
+}
+/* the road — a dashed gold line down the marker column (left rail) */
+.kt-map-trail::before {
+  content:''; position:absolute; top:18px; bottom:18px; left:21px; width:0;
+  border-left:3px dashed rgba(201,146,42,.55);
+  filter:drop-shadow(0 0 4px rgba(232,85,10,.35));
+  z-index:0;
+}
+
+/* ===== node = marker (on the path) + card ===== */
+.kt-map-node {
+  position:relative; z-index:1; display:flex; align-items:stretch; gap:11px;
+}
+.kt-map-node[data-stage] { cursor:pointer; }
+.kt-map-node[data-stage]:active .kt-map-card { transform:scale(.985); }
+
+/* round marker that sits on the dashed road */
+.kt-map-marker {
+  flex:none; width:44px; display:flex; align-items:center; justify-content:flex-start; padding-top:18px;
+}
+.kt-map-marker .kt-map-num {
+  width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  font-weight:700; font-size:14px; color:#2a1400;
+  background:linear-gradient(180deg,#f6d57a,#c9821a);
+  box-shadow:0 2px 5px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,248,200,.6), 0 0 0 3px rgba(8,5,1,.7);
+}
+
+/* the card body */
+.kt-map-card {
+  flex:1; min-width:0; display:flex; align-items:center; gap:12px;
+  background:rgba(8,5,1,.7); border-radius:14px; padding:11px 13px;
+  box-shadow:inset 0 0 0 1px rgba(201,146,42,.3);
+  transition:transform .12s ease, box-shadow .15s ease;
+}
+.kt-map-badge {
+  width:46px; height:46px; flex:none; display:flex; align-items:center; justify-content:center;
+  background:radial-gradient(circle at 50% 38%, rgba(60,40,12,.7), rgba(6,4,0,.4)); border-radius:10px;
+  box-shadow:inset 0 0 0 1px rgba(201,146,42,.3);
+}
+.kt-map-badge img { width:38px; height:38px; object-fit:contain; }
+.kt-map-info { flex:1; min-width:0; line-height:1.32; }
+.kt-map-info b {
+  display:block; color:var(--gold-lt); font-size:14.5px; font-weight:700;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-shadow:0 1px 2px #000;
+}
+.kt-map-stars {
+  display:inline-flex; align-items:center; gap:5px; margin-top:3px;
+  color:#d9b878; font-size:12px; font-weight:700;
+}
+.kt-map-stars img { width:14px; height:14px; object-fit:contain; }
+
+/* state pills / buttons on the right of the card */
+.kt-map-state {
+  flex:none; display:inline-flex; align-items:center; gap:5px;
+  font-size:11px; font-weight:700; letter-spacing:.4px;
+  border-radius:999px; padding:5px 11px;
+}
+.kt-map-state.cleared {
+  color:#7bd06a; background:rgba(96,176,64,.12);
+  box-shadow:inset 0 0 0 1px rgba(123,208,106,.4);
+}
+.kt-map-state.cleared em { font-style:normal; }
+.kt-map-state.locked {
+  color:#8a6a2a; background:rgba(6,4,0,.45);
+  box-shadow:inset 0 0 0 1px rgba(107,76,26,.5);
+}
+.kt-map-go {
+  flex:none; font-family:inherit; font-weight:700; font-size:13px; color:#2a1400;
+  border:none; border-radius:10px; padding:8px 16px; cursor:pointer;
+  background:linear-gradient(180deg,#f6d57a,#e0a02a 55%,#b9760f);
+  box-shadow:0 2px 0 #6a3e00, inset 0 1px 0 rgba(255,248,200,.5);
+}
+.kt-map-go:active { transform:translateY(1px); box-shadow:0 1px 0 #6a3e00; }
+
+/* ===== state treatments on the whole node ===== */
+/* current — gold ring + ember glow, marker pops larger */
+.kt-map-node.current .kt-map-card {
+  background:linear-gradient(100deg, rgba(245,200,66,.16), rgba(8,5,1,.7) 72%);
+  box-shadow:inset 0 0 0 1.5px var(--gold-lt), 0 0 18px rgba(232,85,10,.35);
+}
+.kt-map-node.current .kt-map-num {
+  width:34px; height:34px; font-size:15px;
+  box-shadow:0 2px 6px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,248,200,.6),
+             0 0 0 3px rgba(8,5,1,.7), 0 0 14px rgba(245,200,66,.7);
+  animation:kt-map-pulse 1.8s ease-in-out infinite;
+}
+@keyframes kt-map-pulse {
+  0%,100% { transform:scale(1); }
+  50% { transform:scale(1.07); }
+}
+
+/* locked — dimmed, desaturated, not interactive */
+.kt-map-node.locked { opacity:.5; }
+.kt-map-node.locked .kt-map-badge img { filter:grayscale(.85) brightness(.8); }
+.kt-map-node.locked .kt-map-num {
+  background:#2a1d08; color:#7a6438;
+  box-shadow:0 0 0 3px rgba(8,5,1,.7), inset 0 0 0 1px var(--line);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kt-map-node.current .kt-map-num { animation:none; }
+}

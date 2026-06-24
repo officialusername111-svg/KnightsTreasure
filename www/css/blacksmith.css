@@ -1,0 +1,17 @@
+/* Blacksmith (Forge & armory) shop scene. Inherits .kt-sec / .kt-panel / .kt-shop-row /
+   .kt-buy / .kt-npc-hero / .kt-toast from sections.css; only blacksmith extras live here. */
+
+/* "owned ×N" tag riding alongside the power-up name */
+.kt-bs-owned { display:inline-flex; align-items:center; vertical-align:middle; margin-left:8px;
+  font-size:9px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:#d9b878;
+  background:rgba(6,4,0,.55); border-radius:999px; padding:2px 8px;
+  box-shadow:inset 0 0 0 1px rgba(201,146,42,.3); }
+
+/* name + icon are tappable for the effect info dialog */
+.kt-bs-ic, .kt-bs-info { cursor:pointer; }
+
+/* locked rows: dimmed, no buy button — just the unlock note */
+.kt-shop-row.is-locked { opacity:.5; }
+.kt-bs-lock { flex:none; font-size:9px; font-weight:700; letter-spacing:1px; text-transform:uppercase;
+  color:#caa45a; border:1px solid #6b4c1a; border-radius:7px; padding:6px 10px; text-align:center;
+  line-height:1.2; max-width:96px; }

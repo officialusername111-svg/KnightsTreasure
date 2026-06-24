@@ -1,8 +1,10 @@
 import { SAVE_KEY, SAVE_VERSION } from '../data/config.js';
 
 export function defaultSave() {
+  const now = Date.now();
   return {
     saveVersion: SAVE_VERSION,
+    // v1 — progression
     currentStage: 1,
     currentLevel: 1,
     completedLevels: [],
@@ -10,21 +12,42 @@ export function defaultSave() {
     displayName: '',
     settings: { sound: true, music: true, language: 'EN' },
     seenIntros: {},
+    // v2 — economy
+    coins: 0,
+    inventory: {},          // itemId -> count (power-ups + consumables, D1/D10)
+    adsWatchedToday: 0,
+    adsDay: '',
+    // v3 — stamina, story, streak, daily duty, records
+    stamina: 5,
+    staminaLastUpdated: now,
+    staminaMaxSeen: now,    // clock-rollback guard
+    storyProgress: {},      // "{stage}-{moment}" -> true (seen beats)
+    streakDays: 0,
+    lastLogin: '',
+    dailyDuty: { day: '', progress: {}, claimed: {} },
+    talesHeard: {},         // bard tale id -> true (first-listen coin given)
+    bestScores: {},         // levelId -> best score
+    achievements: {},       // achievementId -> true
   };
 }
 
-// Upgrade any older/partial save to the current schema. Add ordered steps as
-// the schema grows; each step only fills what its version introduced.
+// Upgrade any older/partial save to the current schema. Add ordered steps as the
+// schema grows; each step only fills what its version introduced. migrate() merges
+// old saves over the new defaults — missing fields get defaults, never destructive.
 export function migrate(raw) {
   const base = defaultSave();
   const merged = { ...base, ...(raw && typeof raw === 'object' ? raw : {}) };
   merged.saveVersion = SAVE_VERSION;
   // defensive coercions
   if (!Array.isArray(merged.completedLevels)) merged.completedLevels = [];
-  if (!merged.stars || typeof merged.stars !== 'object') merged.stars = {};
-  // deep-merge settings so a partial saved object keeps the new defaults
+  const obj = (k) => { if (!merged[k] || typeof merged[k] !== 'object') merged[k] = base[k]; };
+  ['stars', 'seenIntros', 'inventory', 'storyProgress', 'talesHeard', 'bestScores', 'achievements'].forEach(obj);
   merged.settings = { ...base.settings, ...(merged.settings && typeof merged.settings === 'object' ? merged.settings : {}) };
-  if (!merged.seenIntros || typeof merged.seenIntros !== 'object') merged.seenIntros = {};
+  merged.dailyDuty = { ...base.dailyDuty, ...(merged.dailyDuty && typeof merged.dailyDuty === 'object' ? merged.dailyDuty : {}) };
+  if (typeof merged.coins !== 'number') merged.coins = 0;
+  if (typeof merged.stamina !== 'number') merged.stamina = 5;
+  if (typeof merged.staminaLastUpdated !== 'number') merged.staminaLastUpdated = Date.now();
+  if (typeof merged.staminaMaxSeen !== 'number') merged.staminaMaxSeen = merged.staminaLastUpdated;
   return merged;
 }
 

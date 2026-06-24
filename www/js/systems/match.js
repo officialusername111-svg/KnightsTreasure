@@ -1,20 +1,20 @@
-export function buildDeck({ pairs, iconPool, shuffle }) {
-  const icons = iconPool.slice(0, pairs);
-  const doubled = [];
-  icons.forEach((icon) => {
-    doubled.push(icon, icon);
-  });
-  return shuffle(doubled).map((icon, index) => ({
+export function buildDeck({ pairs, iconPool, shuffle, decoyCount = 0 }) {
+  const real = [];
+  iconPool.slice(0, pairs).forEach((icon) => real.push({ icon, isDecoy: false }, { icon, isDecoy: false }));
+  // Decoys (D6): unique icons after the pair set, single copies — they never match.
+  const decoys = iconPool.slice(pairs, pairs + decoyCount).map((icon) => ({ icon, isDecoy: true }));
+  return shuffle([...real, ...decoys]).map((t, index) => ({
     index,
-    icon,
+    icon: t.icon,
+    isDecoy: t.isDecoy,
     faceUp: false,
     matched: false,
   }));
 }
 
-export function createMatchState({ pairs, iconPool, shuffle }) {
+export function createMatchState({ pairs, iconPool, shuffle, decoyCount = 0 }) {
   return {
-    tiles: buildDeck({ pairs, iconPool, shuffle }),
+    tiles: buildDeck({ pairs, iconPool, shuffle, decoyCount }),
     firstPick: null,
     locked: false,
     matchedPairs: 0,

@@ -36,7 +36,9 @@
 .kt-res-coin img { border-radius:50%; }
 
 /* stage heading (upper-centre) */
-.kt-stage-head { position:relative; z-index:2; text-align:center; margin-top:100px; padding:0 30px; }
+.kt-stage-head { position:relative; z-index:2; text-align:center; margin-top:100px; padding:0 30px;
+  background:none; border:none; width:100%; font-family:inherit; cursor:pointer; display:block; }
+.kt-stage-head:active { transform:scale(.99); }
 .kt-stage-no { color:#d9b878; font-size:11px; letter-spacing:.35em; text-transform:uppercase; text-shadow:0 1px 3px #000; }
 .kt-stage-name { font-family:Georgia,'Times New Roman',serif; font-weight:700; color:var(--gold-lt);
   font-size:clamp(26px,7.5vw,38px); line-height:1.05; text-wrap:balance;
@@ -55,6 +57,7 @@
   box-shadow:0 3px 0 #6a3e00, 0 6px 18px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,248,200,.6);
   transition:transform .12s ease, box-shadow .12s ease; }
 .kt-home-play:active { transform:translateY(2px); box-shadow:0 1px 0 #6a3e00, 0 3px 10px rgba(0,0,0,.5); }
+.kt-home-play.depleted { filter:grayscale(.45) brightness(.92); }
 .kt-home-play .lbl { font-size:22px; font-weight:700; letter-spacing:2px; }
 .kt-home-play .sub { font-size:11px; font-weight:700; opacity:.75; }
 

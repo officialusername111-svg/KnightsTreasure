@@ -16,3 +16,4 @@ temp_clone/
 .claude/plugins/
 .claude/projects/
 .claude/settings.local.json
+.gstack/

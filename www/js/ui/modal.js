@@ -15,6 +15,17 @@ export function showInfo(parent, title, bodyHtml) {
   return o;
 }
 
+// Brief self-dismissing message (purchases, rewards, gentle errors).
+export function toast(parent, text) {
+  const t = document.createElement('div');
+  t.className = 'kt-toast';
+  t.textContent = text;
+  parent.appendChild(t);
+  requestAnimationFrame(() => t.classList.add('show'));
+  setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 250); }, 1700);
+  return t;
+}
+
 // NPC greeting hero card (portrait + speech) shown at the top of a tavern hall.
 export function npcHero(npc) {
   return (
@@ -30,7 +41,7 @@ export function npcHero(npc) {
 export function sectionTop(sub, title, coins) {
   const coinPill = coins == null
     ? ''
-    : `<div class="kt-sec-coin"><img src="${ASSETS.ui}ui_coin.png" alt="coins">${coins}</div>`;
+    : `<div class="kt-sec-coin"><img src="${ASSETS.ui}ui_coin.png" alt="coins"><span class="kt-sec-coin-val">${coins}</span></div>`;
   return (
     `<div class="kt-sec-top">` +
       `<button type="button" class="kt-sec-back" aria-label="Back to the keep">` +
