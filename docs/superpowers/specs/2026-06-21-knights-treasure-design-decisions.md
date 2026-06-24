@@ -150,6 +150,28 @@ Schema grows by **extending `defaultSave()` and bumping `SAVE_VERSION`**; `migra
 - **v1** (Plan 1): `saveVersion, currentStage, currentLevel, completedLevels[], stars{}, displayName`.
 - **v2** (Plan 2): + `coins: 0`, `inventory: {}` (id→count, both categories), `settings: { sound: true, language: 'EN' }`, `adsWatchedToday: 0`, `adsDay: ''`.
 - **v3** (Plan 3): + `stamina: 5`, `staminaLastUpdated: <ts>`, `staminaMaxSeen: <ts>` (clock-rollback guard), `storyProgress: {}`, `streakDays: 0`, `lastLogin: ''`.
+- **v4** (social/meta): + `rankHistory`, `mail[]`, `broadcast`, `pendingFanfare[]`, `bestScores`, `achievements`, `dailyDuty`, `talesHeard`, `seenIntros`.
+- **v5** (onboarding, 2026-06-25): + `tutorialSeen: false` (first-launch tutorial shown once; replayable from Settings).
+
+---
+
+## Part F — Delegated decisions, 2026-06-25 batch (owner delegated "Safe + Gated" work)
+These were built autonomously at the owner's explicit direction; recorded here per the project exactness rule.
+
+### D18 — Per-stage tile themes (Plan 5)
+Each stage's boards draw icons from a thematically-fitting subset of `ICON_POOL`, defined in `data/tiles.js` `STAGE_TILES` (forest → woodland/quarry icons; village → food/trade; … throne → regalia; lair → beasts/hoard; final → treasure). Pools overlap (43 icons across 10 stages) and each holds **≥16 distinct** icons — enough for the largest board (12 pairs) plus boss decoys (≤4). `tilePoolForStage(stage)` falls back to the full pool if a stage is missing. Backgrounds remain per-stage via `STAGE_BG`.
+
+### D19 — Boss template realized (implements D4)
+`levels.js applyBoss()` sets per-stage `bossGimmick`, `timeLimit: 90`, and `scoreThreshold = 600 + (stage−1)·150`. Gimmick→effect mapping: `fast_timer` → `timeDrainRate 1.25`; `preshow` → `preShowMs 2000` (board flashed then hidden before play); `all_hidden` → 0.5× flip-memory; `extra_decoys` → +2 decoys; `fast_moves` → `moveIntervalMs 5000`; `more_locks` → +1 lock; `rotate` (S8) → **both decoy + moving active** (simplified from "rotate mid-level" — full rotation deferred, documented); `all_mechanics`/`final` → every mechanic on; `final` adds `shrinkTimer` (drain rate rises ~1→2 over 60s). The 3rd star needs the D3 conditions **and** `score ≥ scoreThreshold`.
+
+### D20 — "Max 2 active power-ups" scope (clarifies D11)
+"Active" = **durational** power-ups only (`shield`, `warHorn`). Instant reveals (raven/arrow/sword/bomb) and short visual reveals (torch/eagleEye/spear/king's decree) are not counted. Enforced in `game.js usePower`: a durational buff is blocked if already active or if 2 are already running.
+
+### D21 — Tutorial content (Plan 3)
+First-launch tutorial is a 4-step dialog (`ui/tutorial.js`): welcome → reveal & match → clear the board / stars → power-ups & rest. Shown once on level 1-1 (gated on `tutorialSeen`, after the opening story beat), gates the timer until dismissed, and is replayable from Settings → Replay tutorial. Uses the shared `.kt-info` styling.
+
+### D22 — Moving-tiles rendering (implements D8)
+Swaps reorder the two tiles' **DOM nodes** (FLIP slide ~0.6s); the model index stays the tile's identity, so taps still match and `match.js` purity holds. Movement pauses mid-turn, during any reveal, while backgrounded, and once finished (`movementPaused()`); permanent-reveal tiles are pinned. Scheduler (`mechanics.chooseSwaps`) is unit-tested. **Open for on-device feel review:** swap cadence/telegraph timing — unobservable in the headless preview (timer throttling), so tuning wants a real device.
 
 ---
 

@@ -1,5 +1,5 @@
 export const SAVE_KEY = 'kt_save';
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 
 export const STAGE1 = { id: 1, name: 'The Forest Path', theme: 'forest' };
 

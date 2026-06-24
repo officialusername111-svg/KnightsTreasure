@@ -33,6 +33,33 @@ export function confirmModal(parent, { title, body, confirmLabel = 'Leave', canc
   return o;
 }
 
+// Single-line text-input dialog (e.g. redeem a code). onSubmit gets (value, overlay)
+// so the caller decides whether to close (success) or keep it open (validation error).
+export function promptModal(parent, { title, body = '', placeholder = '', value = '',
+  confirmLabel = 'OK', cancelLabel = 'Cancel', onSubmit }) {
+  const o = document.createElement('div');
+  o.className = 'kt-info';
+  o.innerHTML =
+    `<div class="kt-info-card">` +
+      `<h3>${title}</h3>` + (body ? `<p>${body}</p>` : '') +
+      `<input type="text" class="kt-prompt-input" placeholder="${placeholder}" value="${value}" ` +
+        `autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false">` +
+      `<div class="kt-confirm-btns">` +
+        `<button type="button" class="kt-btn sec kt-cancel">${cancelLabel}</button>` +
+        `<button type="button" class="kt-btn kt-confirm">${confirmLabel}</button>` +
+      `</div></div>`;
+  const input = o.querySelector('.kt-prompt-input');
+  const close = () => o.remove();
+  const submit = () => onSubmit && onSubmit(input.value, o);
+  o.addEventListener('click', (e) => { if (e.target === o) close(); });
+  o.querySelector('.kt-cancel').addEventListener('click', close);
+  o.querySelector('.kt-confirm').addEventListener('click', submit);
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
+  parent.appendChild(o);
+  requestAnimationFrame(() => input.focus());
+  return o;
+}
+
 // Brief self-dismissing message (purchases, rewards, gentle errors).
 export function toast(parent, text) {
   const t = document.createElement('div');

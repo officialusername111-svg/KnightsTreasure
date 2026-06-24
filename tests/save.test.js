@@ -1,9 +1,15 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createMemoryAdapter } from './helpers/memoryAdapter.js';
 import { defaultSave, loadSave, persistSave, migrate } from '../www/js/core/save.js';
 import { SAVE_KEY, SAVE_VERSION } from '../www/js/data/config.js';
 
 describe('save', () => {
+  // defaultSave() stamps staminaLastUpdated/staminaMaxSeen with Date.now(). Tests that
+  // compare one defaultSave() snapshot against another (loadSave fallbacks) flake when the
+  // two calls straddle a millisecond boundary — freeze the clock so they're always equal.
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
   it('returns default save when storage empty', async () => {
     const save = await loadSave(createMemoryAdapter());
     expect(save).toEqual(defaultSave());

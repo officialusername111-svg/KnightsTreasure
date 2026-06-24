@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildDeck, createMatchState, tapTile, resolveMismatch } from '../www/js/systems/match.js';
+import { buildDeck, createMatchState, tapTile, resolveMismatch, removeAllLocks } from '../www/js/systems/match.js';
 
 const identity = (a) => a; // deterministic "shuffle"
 
@@ -74,5 +74,35 @@ describe('tapTile', () => {
     const r = tapTile(s, 3);           // last pair
     expect(r.result).toBe('win');
     expect(r.state.matchedPairs).toBe(2);
+  });
+});
+
+describe('locked tiles (D9)', () => {
+  // identity shuffle → deck [A,A,B,B,C,C]; locked selection takes the front indices.
+  const setup = (opts) => createMatchState({ pairs: 3, iconPool: ['A', 'B', 'C'], shuffle: identity, ...opts });
+
+  it('a locked tile cannot be flipped', () => {
+    const s = setup({ lockedCount: 1 });
+    expect(s.tiles[0].locked).toBe(true);
+    expect(tapTile(s, 0).result).toBe('ignored');
+  });
+
+  it('unlocks one tile every unlockAfterMatches matches', () => {
+    let s = setup({ lockedCount: 1, unlockAfterMatches: 2 });
+    s = tapTile(s, 2).state; s = tapTile(s, 3).state;  // 1 match (B)
+    expect(s.tiles[0].locked).toBe(true);
+    s = tapTile(s, 4).state; s = tapTile(s, 5).state;  // 2 matches (C) → unlock
+    expect(s.tiles[0].locked).toBe(false);
+    expect(s.locksRemaining).toBe(0);
+    s = tapTile(s, 0).state;                            // formerly locked pair now playable
+    expect(tapTile(s, 1).result).toBe('win');
+  });
+
+  it('removeAllLocks strips every chain (Holy Water)', () => {
+    let s = setup({ lockedCount: 2 });
+    expect(s.tiles.filter((t) => t.locked).length).toBe(2);
+    s = removeAllLocks(s);
+    expect(s.tiles.some((t) => t.locked)).toBe(false);
+    expect(s.locksRemaining).toBe(0);
   });
 });

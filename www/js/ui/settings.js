@@ -1,6 +1,8 @@
 import { persistSave } from '../core/save.js';
 import { configure as audioConfigure } from '../systems/audio.js';
-import { showInfo, sectionTop } from './modal.js';
+import { showInfo, sectionTop, promptModal, toast } from './modal.js';
+import { redeemCode } from '../systems/codes.js';
+import { showTutorial } from './tutorial.js';
 
 const SVG = (p, extra = '') =>
   `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${p}${extra}</svg>`;
@@ -13,6 +15,7 @@ const ICON = {
   credits: SVG('<path d="M12 3l2.6 5.6 6 .8-4.4 4.2 1.1 6L12 16.8 6.7 19.6l1.1-6L3.4 9.4l6-.8z"/>'),
   privacy: SVG('<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/>'),
   fanfare: SVG('<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M18 6l-2.5 2.5M8.5 15.5L6 18"/><circle cx="12" cy="12" r="2.5"/>'),
+  key: SVG('<circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 19 4M16 7l3 3M14 9l2 2"/>'),
 };
 
 export function createSettingsScene({ gameState, adapter, onBack, onReplayTutorial }) {
@@ -43,6 +46,7 @@ export function createSettingsScene({ gameState, adapter, onBack, onReplayTutori
           `<span class="kt-seg" id="set-lang"><button type="button" data-l="EN"${st.language === 'EN' ? ' class="on"' : ''}>EN</button>` +
           `<button type="button" data-l="HIL"${st.language === 'HIL' ? ' class="on"' : ''}>HIL</button></span></div>` +
         `<button type="button" class="kt-set-link" id="set-tutorial"><span class="ic">${ICON.help}</span>Replay tutorial<span class="ch">›</span></button>` +
+        `<button type="button" class="kt-set-link" id="set-code"><span class="ic">${ICON.key}</span>Enter code<span class="ch">›</span></button>` +
       `</div>` +
       `<div class="kt-set-group">` +
         `<div class="kt-set-gtitle">Account</div>` +
@@ -82,13 +86,27 @@ export function createSettingsScene({ gameState, adapter, onBack, onReplayTutori
   );
 
   scene.querySelector('#set-tutorial').addEventListener('click', () =>
-    onReplayTutorial ? onReplayTutorial() : showInfo(scene, 'Tutorial', `<p>The training grounds reopen in a later chapter, Sir Knight.</p>`)
+    onReplayTutorial ? onReplayTutorial() : showTutorial(scene, {})
   );
   scene.querySelector('#set-credits').addEventListener('click', () =>
     showInfo(scene, 'Credits', `<p>Knight's Treasure — a medieval memory quest.</p><p style="margin-top:8px;color:#9a7a3a;">Crafted with care. Full credits roll arrives nearer launch.</p>`)
   );
   scene.querySelector('#set-privacy').addEventListener('click', () =>
     showInfo(scene, 'Privacy', `<p>Your progress is stored on this device. No personal data leaves your keep until cloud save is enabled.</p>`)
+  );
+
+  scene.querySelector('#set-code').addEventListener('click', () =>
+    promptModal(scene, {
+      title: 'Secret code',
+      body: 'Know a rune from the realm? Speak it here.',
+      placeholder: 'CODE',
+      confirmLabel: 'Redeem',
+      onSubmit: (value, overlay) => {
+        const res = redeemCode(save, value);
+        if (res.ok) { persist(); overlay.remove(); }
+        toast(scene, res.message);
+      },
+    })
   );
 
   return scene;

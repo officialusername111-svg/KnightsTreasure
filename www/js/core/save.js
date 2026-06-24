@@ -33,6 +33,8 @@ export function defaultSave() {
     mail: [],               // [{ id, type, title, body, date, read }]
     broadcast: { text: '', locked: false, changedOnce: false }, // rank 1-3 motivational line
     pendingFanfare: [],     // achievement ids awaiting a full-page celebration
+    // v5 — onboarding
+    tutorialSeen: false,    // first-launch tutorial shown once (replayable from Settings)
   };
 }
 

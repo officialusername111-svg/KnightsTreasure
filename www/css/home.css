@@ -129,5 +129,15 @@
 .kt-coin-row b { color:var(--gold-lt); }
 .kt-coin-foot { color:#9a7a3a; font-size:11px; margin-top:8px; }
 .kt-info-close { width:100%; margin-top:14px; }
+.kt-prompt-input { width:100%; box-sizing:border-box; margin-top:12px; font-family:inherit; font-size:16px;
+  color:var(--gold-lt); text-align:center; letter-spacing:3px; text-transform:uppercase;
+  background:rgba(42,24,0,.8); border:1px solid var(--gold); border-radius:8px; padding:11px 12px; outline:none; }
+.kt-prompt-input::placeholder { color:#8a6a2a; letter-spacing:2px; }
+.kt-prompt-input:focus { box-shadow:0 0 0 2px rgba(245,200,66,.35); }
+/* tutorial stepper dots */
+.kt-tut-dots { display:flex; gap:6px; justify-content:center; margin-bottom:10px; }
+.kt-tut-dots span { width:7px; height:7px; border-radius:50%; background:rgba(201,146,42,.35); transition:background .2s; }
+.kt-tut-dots span.on { background:var(--gold-lt); box-shadow:0 0 6px rgba(245,200,66,.7); }
+.kt-tut .kt-tut-next { width:100%; margin-top:14px; }
 
 @media (prefers-reduced-motion: reduce) { .kt-ember-rise { display:none; } }
