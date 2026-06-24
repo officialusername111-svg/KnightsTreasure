@@ -15,6 +15,24 @@ export function showInfo(parent, title, bodyHtml) {
   return o;
 }
 
+// Two-button confirm (e.g. abandoning a level). onConfirm fires on the primary action.
+export function confirmModal(parent, { title, body, confirmLabel = 'Leave', cancelLabel = 'Stay', onConfirm }) {
+  const o = document.createElement('div');
+  o.className = 'kt-info';
+  o.innerHTML =
+    `<div class="kt-info-card"><h3>${title}</h3><p>${body}</p>` +
+    `<div class="kt-confirm-btns">` +
+      `<button type="button" class="kt-btn sec kt-cancel">${cancelLabel}</button>` +
+      `<button type="button" class="kt-btn kt-confirm">${confirmLabel}</button>` +
+    `</div></div>`;
+  const close = () => o.remove();
+  o.addEventListener('click', (e) => { if (e.target === o) close(); });
+  o.querySelector('.kt-cancel').addEventListener('click', close);
+  o.querySelector('.kt-confirm').addEventListener('click', () => { close(); onConfirm && onConfirm(); });
+  parent.appendChild(o);
+  return o;
+}
+
 // Brief self-dismissing message (purchases, rewards, gentle errors).
 export function toast(parent, text) {
   const t = document.createElement('div');

@@ -1,5 +1,5 @@
 export const SAVE_KEY = 'kt_save';
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 
 export const STAGE1 = { id: 1, name: 'The Forest Path', theme: 'forest' };
 
@@ -26,6 +26,7 @@ export const ASSETS = {
   bgInn: 'assets/images/backgrounds/bg_tavern.png',
   bgBards: 'assets/images/backgrounds/bg_bards_corner.png',
   bgGamblers: 'assets/images/backgrounds/bg_gamblers_den.png',
+  bgBlacksmith: 'assets/images/backgrounds/bg_blacksmith.png',
   bgDaily: 'assets/images/backgrounds/bg_daily_duty.png',
   bgMap: 'assets/images/backgrounds/bg_map.png',
   characters: 'assets/images/characters/',

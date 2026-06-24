@@ -1,8 +1,16 @@
 import { ASSETS } from '../data/config.js';
-import { NPC } from '../data/npc.js';
+import { NPC, BROKE_LINE } from '../data/npc.js';
 import { persistSave } from '../core/save.js';
 import { roll, rollsLeft, FREE_ROLLS } from '../systems/gambler.js';
+import { sfx } from '../systems/audio.js';
 import { showInfo, sectionTop, npcHero, toast } from './modal.js';
+import { fanfare } from './fanfare.js';
+
+const TAUNT = { win: 'gambler/gambler_grinning', lose: 'gambler/gambler_laughing' };
+const TAUNT_LINE = {
+  win: "Luck's with you, knight. Care to press it?",
+  lose: 'Hah! The house thanks you for the coin, knight.',
+};
 
 // Gambler's Den (GDD §Gambler's Den). 1 coin staked per roll, 45% win → +1 stamina,
 // lose → −1 coin, 3 free rolls / hour.
@@ -47,6 +55,8 @@ export function createGamblerScene({ gameState, adapter, onBack }) {
   const dieA = scene.querySelector('#die-a');
   const dieB = scene.querySelector('#die-b');
   const res = scene.querySelector('.kt-roll-res');
+  const heroImg = scene.querySelector('.kt-npc-hero img');
+  const heroP = scene.querySelector('.kt-npc-hero p');
   const sync = () => {
     scene.querySelector('#kt-rolls-left').textContent = rollsLeft(save);
     scene.querySelector('.kt-sec-coin-val').textContent = save.coins || 0;
@@ -56,26 +66,38 @@ export function createGamblerScene({ gameState, adapter, onBack }) {
     if (rolling) return;
     const r = roll(save);
     if (!r.ok) {
-      toast(scene, r.reason === 'broke' ? 'You need at least 1 coin to wager.' : 'Out of free rolls — come back in an hour.');
+      if (r.reason === 'broke') showInfo(scene, NPC.gambler.speaker, `<p>${BROKE_LINE.gambler}</p>`);
+      else toast(scene, 'Out of free rolls — come back in an hour.');
       return;
     }
     rolling = true;
+    sfx('dice');
     res.textContent = 'The dice tumble…';
+    [dieA, dieB].forEach((d) => d.classList.add('jumping'));
     let ticks = 0;
     const spin = setInterval(() => {
       dieA.innerHTML = dieFace(1 + Math.floor(Math.random() * 6));
       dieB.innerHTML = dieFace(1 + Math.floor(Math.random() * 6));
+      sfx('dice');
       if (++ticks >= 7) {
         clearInterval(spin);
         dieA.innerHTML = dieFace(r.a);
         dieB.innerHTML = dieFace(r.b);
+        [dieA, dieB].forEach((d) => d.classList.remove('jumping'));
         rolling = false;
         persistSave(adapter, save);
         sync();
+        // gambler reacts: portrait + line change with the outcome
+        if (heroImg) heroImg.src = `${ASSETS.characters}${TAUNT[r.win ? 'win' : 'lose']}.png`;
+        if (heroP) heroP.textContent = `“${TAUNT_LINE[r.win ? 'win' : 'lose']}”`;
         res.innerHTML = r.win
           ? `You rolled <b>${r.a + r.b}</b> — fortune favors you! <b>+1 stamina</b>.`
           : `You rolled <b>${r.a + r.b}</b>. The house wins this one — <b>−1 coin</b>.`;
-        if (r.win) toast(scene, '+1 stamina won!');
+        if (r.win) {
+          sfx('coin');
+          fanfare(scene, { settings: save.settings, kind: 'small', originY: 44 });
+          toast(scene, '+1 stamina won!');
+        }
       }
     }, 70);
   });

@@ -4,11 +4,25 @@
 export const STORY = {
   1: { name: 'The Forest Path', beats: [
     { moment: 'Opening', speaker: 'Forest Guard', portrait: 'forest_guard/forest_guard_friendly',
-      text: 'Well met, knight. The Elder seeks a champion for a sacred quest — the lost treasure of the realm. Will you answer the call?' },
+      text: 'Well met, knight. The Elder seeks a champion for a sacred quest — the lost treasure of the realm. Will you answer the call?',
+      lines: [
+        { who: 'npc', text: 'Well met, knight. The Elder seeks a champion for a sacred quest — the lost treasure of the realm.' },
+        { who: 'knight', text: 'A treasure long lost? Tell me where the trail begins.' },
+        { who: 'npc', text: 'Beyond this forest path. But the woods test memory and nerve alike — go carefully.' },
+      ] },
     { moment: 'Midpoint', speaker: 'Village Elder', portrait: 'village_elder/village_elder_warning',
-      text: 'Beware, young knight. The forest path twists, and not all who enter find their way home. Keep your wits — and your memory — sharp.' },
-    { moment: 'Boss', speaker: 'Sir Ronard', portrait: 'knight/knight_confident',
-      text: 'A clue, etched in old stone. The treasure lies far beyond this wood. My quest has truly begun.' },
+      text: 'Beware, young knight. The forest path twists, and not all who enter find their way home. Keep your wits — and your memory — sharp.',
+      lines: [
+        { who: 'npc', text: 'Beware, young knight. The forest path twists, and not all who enter find their way home.' },
+        { who: 'knight', text: 'Then I shall mark every turn. Memory is a blade of its own.' },
+        { who: 'npc', text: 'Wisely said. Keep your wits sharp and the path will yield.' },
+      ] },
+    { moment: 'Boss', speaker: 'Forest Guard', portrait: 'forest_guard/forest_guard_neutral',
+      text: 'A clue, etched in old stone. The treasure lies far beyond this wood.',
+      lines: [
+        { who: 'npc', text: 'There — a clue, etched in old stone, just as the Elder foretold.' },
+        { who: 'knight', text: 'The treasure lies far beyond this wood. My quest has truly begun.' },
+      ] },
   ]},
   2: { name: 'The Village', beats: [
     { moment: 'Opening', speaker: "Elder's Daughter", portrait: 'elders_daughter/elders_daughter_hopeful',

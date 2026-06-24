@@ -10,7 +10,7 @@ export function defaultSave() {
     completedLevels: [],
     stars: {},
     displayName: '',
-    settings: { sound: true, music: true, language: 'EN' },
+    settings: { sound: true, music: true, language: 'EN', fanfare: true },
     seenIntros: {},
     // v2 — economy
     coins: 0,
@@ -24,10 +24,15 @@ export function defaultSave() {
     storyProgress: {},      // "{stage}-{moment}" -> true (seen beats)
     streakDays: 0,
     lastLogin: '',
-    dailyDuty: { day: '', progress: {}, claimed: {} },
+    dailyDuty: { day: '', progress: {}, claimed: {}, accepted: {}, dailyLevelDone: {} },
     talesHeard: {},         // bard tale id -> true (first-listen coin given)
     bestScores: {},         // levelId -> best score
-    achievements: {},       // achievementId -> true
+    achievements: {},       // achievementId -> true (first-earned record)
+    // v4 — social & meta
+    rankHistory: {},        // scope -> best place (number), stage -> {n: place}
+    mail: [],               // [{ id, type, title, body, date, read }]
+    broadcast: { text: '', locked: false, changedOnce: false }, // rank 1-3 motivational line
+    pendingFanfare: [],     // achievement ids awaiting a full-page celebration
   };
 }
 
@@ -40,10 +45,13 @@ export function migrate(raw) {
   merged.saveVersion = SAVE_VERSION;
   // defensive coercions
   if (!Array.isArray(merged.completedLevels)) merged.completedLevels = [];
+  if (!Array.isArray(merged.mail)) merged.mail = [];
+  if (!Array.isArray(merged.pendingFanfare)) merged.pendingFanfare = [];
   const obj = (k) => { if (!merged[k] || typeof merged[k] !== 'object') merged[k] = base[k]; };
-  ['stars', 'seenIntros', 'inventory', 'storyProgress', 'talesHeard', 'bestScores', 'achievements'].forEach(obj);
+  ['stars', 'seenIntros', 'inventory', 'storyProgress', 'talesHeard', 'bestScores', 'achievements', 'rankHistory'].forEach(obj);
   merged.settings = { ...base.settings, ...(merged.settings && typeof merged.settings === 'object' ? merged.settings : {}) };
   merged.dailyDuty = { ...base.dailyDuty, ...(merged.dailyDuty && typeof merged.dailyDuty === 'object' ? merged.dailyDuty : {}) };
+  merged.broadcast = { ...base.broadcast, ...(merged.broadcast && typeof merged.broadcast === 'object' ? merged.broadcast : {}) };
   if (typeof merged.coins !== 'number') merged.coins = 0;
   if (typeof merged.stamina !== 'number') merged.stamina = 5;
   if (typeof merged.staminaLastUpdated !== 'number') merged.staminaLastUpdated = Date.now();

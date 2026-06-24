@@ -25,6 +25,15 @@
 .kt-rank::before { content:''; width:14px; height:1px; background:linear-gradient(90deg,var(--gold),transparent); }
 .kt-icon-btn { margin-left:auto; flex:none; background:rgba(6,4,0,.5); border:1px solid rgba(201,146,42,.55); color:var(--gold-lt);
   border-radius:11px; width:42px; height:42px; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+/* top-bar buttons (mailbox + menu) */
+.kt-topbtns { margin-left:auto; display:flex; gap:8px; }
+.kt-topbtns .kt-icon-btn { margin-left:0; }
+.kt-mail-btn { position:relative; flex:none; background:rgba(6,4,0,.5); border:1px solid rgba(201,146,42,.55); color:var(--gold-lt);
+  border-radius:11px; width:42px; height:42px; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+.kt-mail-btn:active { transform:scale(.94); }
+.kt-mail-badge { position:absolute; top:-5px; right:-5px; min-width:18px; height:18px; padding:0 4px; border-radius:999px;
+  background:linear-gradient(180deg,#f06a3a,#c0341a); border:1.5px solid #2a1400; color:#fff; font-size:10px; font-weight:700;
+  display:flex; align-items:center; justify-content:center; line-height:1; }
 
 /* resources: top-right vertical stack (borderless) */
 .kt-res-stack { position:absolute; z-index:3; top:66px; right:14px; display:flex; flex-direction:column;
@@ -65,6 +74,7 @@
 .kt-rail { position:absolute; z-index:3; right:10px; top:54%; transform:translateY(-50%);
   display:flex; flex-direction:column; border-radius:16px; overflow:hidden;
   box-shadow:0 4px 14px rgba(0,0,0,.5), inset 0 0 0 1.5px rgba(201,146,42,.5); }
+.kt-rail.left { right:auto; left:10px; }
 .kt-rail-btn { background:rgba(8,5,1,.7); border:none; cursor:pointer; font-family:inherit; color:var(--gold-lt);
   width:78px; display:flex; flex-direction:column; align-items:center; gap:3px; padding:12px 4px 9px; }
 .kt-rail-btn:not(:last-child) { border-bottom:1px solid rgba(201,146,42,.28); }

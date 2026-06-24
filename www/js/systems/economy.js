@@ -1,7 +1,11 @@
 // Coin economy (GDD §Coin Economy + D13). Reward computation is pure; earn/spend
 // mutate the save's coin balance (the caller persists + emits coins:* events).
 
-// Coins for clearing a level, from the GDD earn table.
+// Global multiplier on earned coins (rebalance — keeps power-ups meaningfully priced).
+// Single tunable source of truth for "lower the gold you earn".
+export const EARN_MULTIPLIER = 0.5;
+
+// Coins for clearing a level, from the GDD earn table (then x EARN_MULTIPLIER).
 export function levelReward({ stars = 1, firstClear = false, noPowerup = false,
   noMistakes = false, speed = false, comboCoins = 0, decoyAvoided = false } = {}) {
   let c = 10;                                  // complete any level
@@ -12,7 +16,7 @@ export function levelReward({ stars = 1, firstClear = false, noPowerup = false,
   if (speed) c += 10;
   if (decoyAvoided) c += 5;
   c += Math.max(0, Math.min(20, comboCoins));  // D13 cap
-  return c;
+  return Math.round(c * EARN_MULTIPLIER);
 }
 
 // Combo coins (D13): at combo length >= 3, escalating coins capped at +20/level.

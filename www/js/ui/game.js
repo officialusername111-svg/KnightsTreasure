@@ -1,5 +1,5 @@
 import { createMatchState, tapTile, resolveMismatch } from '../systems/match.js';
-import { computeStars, computeScore } from '../systems/scoring.js';
+import { computeStars, computeScore, mistakePenalty } from '../systems/scoring.js';
 import { recordLevelResult } from '../core/state.js';
 import { persistSave } from '../core/save.js';
 import { ICON_POOL, ASSETS, TEXT } from '../data/config.js';
@@ -7,6 +7,9 @@ import { ITEMS } from '../data/items.js';
 import { rankFor } from '../systems/ranks.js';
 import { levelReward, comboCoins as comboCoinsFor, earn } from '../systems/economy.js';
 import { recordWin } from '../systems/dailyDuty.js';
+import { sfx } from '../systems/audio.js';
+import { confirmModal } from './modal.js';
+import { fanfare } from './fanfare.js';
 import { renderHud } from './hud.js';
 import { burst, popMatch, burstAtEl, staggerIn, comboBanner, countUp, starSlam } from './animations.js';
 
@@ -19,7 +22,7 @@ function shuffle(arr) {
   return a;
 }
 
-export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, onHome, onStory, onSettings }) {
+export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, onHome, onStory, onSettings, daily }) {
   const level = gameState.current;
   let match = createMatchState({ pairs: level.pairs, iconPool: shuffle(ICON_POOL), shuffle, decoyCount: level.decoyCount || 0 });
   let timeLeft = level.timeLimit;
@@ -64,8 +67,18 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
   const footer = document.createElement('div');
   footer.id = 'kt-footer';
   footer.innerHTML = `<button type="button" class="kt-foot-home">Home</button><button type="button" class="kt-foot-story">Story</button><button type="button" class="kt-foot-settings">Settings</button>`;
-  footer.querySelector('.kt-foot-home').addEventListener('click', () => onHome && onHome());
-  footer.querySelector('.kt-foot-story').addEventListener('click', () => onStory && onStory());
+  // Leaving mid-level forfeits it (stamina already spent) — confirm first.
+  const leaveGuard = (action) => {
+    if (finished) { action(); return; }
+    confirmModal(scene, {
+      title: 'Abandon this level?',
+      body: "Leave now and you forfeit this level — your stamina won't be refunded.",
+      confirmLabel: 'Leave', cancelLabel: 'Stay', onConfirm: action,
+    });
+  };
+  footer.querySelector('.kt-foot-home').addEventListener('click', () => leaveGuard(() => onHome && onHome()));
+  footer.querySelector('.kt-foot-story').addEventListener('click', () => leaveGuard(() => onStory && onStory()));
+  // Settings opens as an overlay and the timer keeps running (intentional).
   footer.querySelector('.kt-foot-settings').addEventListener('click', () => onSettings && onSettings());
 
   const overlay = document.createElement('div');
@@ -134,6 +147,9 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
     if (result === 'ignored') return;
     match = state;
     bus.emit('tile:' + result, { index });
+    if (result === 'flip') sfx('flip');
+    else if (result === 'mismatch') sfx('mismatch');
+    else if (result === 'match') sfx('match');
     syncBoard();
     if (result === 'match' || result === 'win') {
       combo += 1;
@@ -148,6 +164,8 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
       const el = tileEls[index];
       if (el) el.classList.add('wrong');
       mismatchTimer = setTimeout(resolvePending, level.flipMemoryMs);
+      // Daily "no mistakes" challenge: a single slip ends the run.
+      if (daily && daily.modifier === 'no_mistakes') setTimeout(() => { if (!finished) lose(); }, 650);
     } else if (result === 'win') {
       win();
     }
@@ -156,12 +174,25 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
   function win() {
     finished = true;
     stopTimer();
+    sfx('win'); sfx('coin');
     let stars = computeStars({
       mistakes: match.mistakes,
       pairs: match.totalPairs,
       timeUsed: elapsed,
       parTime: level.parTime,
     });
+    // Daily duty level: no campaign record/coins — the reward is claimed in Quests.
+    if (daily) {
+      showOverlay(
+        `<div class="kt-ov-banner victory"><img src="${ASSETS.ui}ui_banner_victory.png" alt="" onerror="this.remove()">` +
+          `<span class="kt-ov-banner-label">${TEXT.win}</span></div>` +
+        `<div class="kt-ov-stars" id="kt-ov-stars"></div>` +
+        `<div class="kt-ov-reward">Daily duty done — collect your reward in Quests.</div>`,
+        [{ label: 'Collect', fn: () => daily.onDone() }]
+      );
+      starSlam(overlay.querySelector('#kt-ov-stars'), stars);
+      return;
+    }
     if (gameState.save.brewBonusNext) stars = Math.max(stars, 2); // Knight's Brew floor
     const timeRemaining = level.timeLimit ? Math.max(0, timeLeft) : 0;
     const score = computeScore({
@@ -190,6 +221,7 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
   function lose() {
     finished = true;
     stopTimer();
+    sfx('lose');
     showOverlay(
       `<div class="kt-ov-banner defeat"><img src="${ASSETS.ui}ui_banner_defeat.png" alt="" onerror="this.remove()">` +
         `<span class="kt-ov-banner-label">${TEXT.lose}</span></div>`,
@@ -204,7 +236,7 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
         `<div class="row"><span>Matches ×100</span><span>+${match.totalPairs * 100}</span></div>` +
         `<div class="row"><span>Time left ×10</span><span>+${timeRemaining * 10}</span></div>` +
         `<div class="row"><span>Combo bonus</span><span>+${comboBonus()}</span></div>` +
-        `<div class="row" style="color:#a05040;"><span>Mistakes ×50</span><span>−${match.mistakes * 50}</span></div>` +
+        `<div class="row" style="color:#a05040;"><span>Mistakes ×50</span><span>−${mistakePenalty({ matches: match.totalPairs, timeRemaining, comboBonus: comboBonus(), mistakes: match.mistakes })}</span></div>` +
       `</div>` +
       `<div class="kt-ov-reward"><img src="${ASSETS.ui}ui_coin.png" alt="">+${coins} coins</div>`;
     showOverlay(
@@ -264,6 +296,10 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
       (it.unlockStage === 99 ? true : level.stage >= it.unlockStage));
   }
   function buildTray() {
+    if (daily && daily.modifier === 'no_powerups') {
+      tray.innerHTML = `<span class="kt-tray-hint">No power-ups in today's challenge</span>`;
+      return;
+    }
     const owned = ownedPowerups();
     if (!owned.length) {
       tray.innerHTML = `<span class="kt-tray-hint">Visit the Blacksmith to forge power-ups</span>`;
@@ -312,6 +348,8 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
     if (!fn) { return; }                 // not-yet-implemented power-ups stay in the pack
     const ok = fn();
     if (!ok) return;                     // timer power-ups are no-ops on untimed levels
+    sfx('powerup');
+    fanfare(scene, { settings: gameState.save.settings, kind: 'small', originY: 84 });
     gameState.save.inventory[id] -= 1;
     persistSave(adapter, gameState.save);
     bus.emit('powerup:used', { id });

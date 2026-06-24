@@ -1,4 +1,5 @@
 import { persistSave } from '../core/save.js';
+import { configure as audioConfigure } from '../systems/audio.js';
 import { showInfo, sectionTop } from './modal.js';
 
 const SVG = (p, extra = '') =>
@@ -11,11 +12,13 @@ const ICON = {
   cloud: SVG('<path d="M7 18a4 4 0 0 1 .4-8A5.5 5.5 0 0 1 18 10.5a3.5 3.5 0 0 1-1 7H7z"/>'),
   credits: SVG('<path d="M12 3l2.6 5.6 6 .8-4.4 4.2 1.1 6L12 16.8 6.7 19.6l1.1-6L3.4 9.4l6-.8z"/>'),
   privacy: SVG('<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/>'),
+  fanfare: SVG('<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M18 6l-2.5 2.5M8.5 15.5L6 18"/><circle cx="12" cy="12" r="2.5"/>'),
 };
 
 export function createSettingsScene({ gameState, adapter, onBack, onReplayTutorial }) {
   const save = gameState.save;
-  const st = save.settings || (save.settings = { sound: true, music: true, language: 'EN' });
+  const st = save.settings || (save.settings = { sound: true, music: true, language: 'EN', fanfare: true });
+  if (st.fanfare === undefined) st.fanfare = true;
 
   const scene = document.createElement('div');
   scene.id = 'kt-settings-scene';
@@ -32,6 +35,7 @@ export function createSettingsScene({ gameState, adapter, onBack, onReplayTutori
         `<div class="kt-set-gtitle">Audio</div>` +
         `<button type="button" class="kt-set-row" id="set-sound"><span class="ic">${ICON.sound}</span><span class="t">Sound effects</span>${sw(st.sound)}</button>` +
         `<button type="button" class="kt-set-row" id="set-music"><span class="ic">${ICON.music}</span><span class="t">Music</span>${sw(st.music)}</button>` +
+        `<button type="button" class="kt-set-row" id="set-fanfare"><span class="ic">${ICON.fanfare}</span><span class="t">Celebrations<small>Confetti & fanfare on wins</small></span>${sw(st.fanfare)}</button>` +
       `</div>` +
       `<div class="kt-set-group">` +
         `<div class="kt-set-gtitle">Game</div>` +
@@ -46,6 +50,7 @@ export function createSettingsScene({ gameState, adapter, onBack, onReplayTutori
         `<button type="button" class="kt-set-link" id="set-credits"><span class="ic">${ICON.credits}</span>Credits<span class="ch">›</span></button>` +
         `<button type="button" class="kt-set-link" id="set-privacy"><span class="ic">${ICON.privacy}</span>Privacy policy<span class="ch">›</span></button>` +
       `</div>` +
+      `<div class="kt-set-note">The level timer keeps running while Settings is open.</div>` +
       `<div class="kt-set-ver">Knight's Treasure · v0.1.0</div>` +
     `</div>`;
 
@@ -58,10 +63,12 @@ export function createSettingsScene({ gameState, adapter, onBack, onReplayTutori
       st[key] = !st[key];
       row.querySelector('.kt-sw').classList.toggle('off', !st[key]);
       persist();
+      audioConfigure(st);
     });
   };
   bindToggle('#set-sound', 'sound');
   bindToggle('#set-music', 'music');
+  bindToggle('#set-fanfare', 'fanfare');
 
   const seg = scene.querySelector('#set-lang');
   seg.querySelectorAll('button').forEach((b) =>

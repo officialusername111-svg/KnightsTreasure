@@ -2,10 +2,28 @@ import { ASSETS, STAGE_BG } from '../data/config.js';
 import { STORY } from '../data/story.js';
 import { sectionTop } from './modal.js';
 
-// Full-screen parchment dialog for a single beat (story moment or NPC intro). Appends an
-// overlay to `parent` (a positioned scene). Skip or the continue arrow dismiss it + call onDone.
-// `bg` overrides the backdrop (e.g. a tavern hall); otherwise the stage art is used.
+// Knight's side of an encounter (when a beat doesn't hand-author its `lines`).
+const KNIGHT_PORTRAIT = { Opening: 'knight/knight_ready', Midpoint: 'knight/knight_thinking', Boss: 'knight/knight_confident' };
+const KNIGHT_REPLIES = {
+  Opening: ['Then I accept. Lead on — the treasure won\'t claim itself.', 'Say no more. My blade and wits are ready.', 'A worthy cause. I will see it through.'],
+  Midpoint: ['Noted. I will keep my wits about me.', 'Forewarned is forearmed. Onward.', 'I won\'t be caught off guard.'],
+  Boss: ['Stand aside — my quest continues.', 'The way is mine now. Farewell.', 'One step closer to the treasure.'],
+};
+function knightReply(moment) { const a = KNIGHT_REPLIES[moment] || ['Onward.']; return a[Math.floor(Math.random() * a.length)]; }
+
+// Build the conversation lines. Hand-authored `beat.lines` win; otherwise a stage encounter
+// (a beat with a `moment`) becomes a 2-line NPC↔knight exchange; a plain intro stays single.
+function buildLines(beat) {
+  if (beat.lines && beat.lines.length) return beat.lines;
+  if (beat.moment) return [{ who: 'npc', text: beat.text }, { who: 'knight', text: knightReply(beat.moment) }];
+  return [{ who: 'npc', text: beat.text }];
+}
+
+// Full-screen parchment dialog. Steps through a beat's conversation (NPC ↔ knight). Skip or
+// advancing past the last line dismisses it + calls onDone. `bg` overrides the backdrop.
 export function showStoryDialog(parent, { beat, stage, bg, onDone }) {
+  const lines = buildLines(beat);
+  let i = 0;
   const ov = document.createElement('div');
   ov.className = 'kt-story';
   ov.style.backgroundImage = `url("${bg || STAGE_BG[stage] || ASSETS.bgForest}")`;
@@ -13,17 +31,32 @@ export function showStoryDialog(parent, { beat, stage, bg, onDone }) {
     `<div class="kt-story-scrim"></div>` +
     `<div class="kt-story-lang"><button type="button" class="on" data-l="EN">EN</button><button type="button" data-l="HIL">HIL</button></div>` +
     `<button type="button" class="kt-story-skip">Skip ▸</button>` +
-    `<div class="kt-story-portrait"><img src="${ASSETS.characters}${beat.portrait}.png" alt="" onerror="this.style.display='none'"></div>` +
+    `<div class="kt-story-portrait"><img alt="" onerror="this.style.display='none'"></div>` +
     `<div class="kt-story-box">` +
-      `<div class="kt-story-name">${beat.speaker}</div>` +
-      `<div class="kt-story-text">${beat.text}</div>` +
+      `<div class="kt-story-name"></div>` +
+      `<div class="kt-story-text"></div>` +
       `<div class="kt-story-hil" hidden>Hiligaynon translation coming soon.</div>` +
       `<button type="button" class="kt-story-next" aria-label="Continue">▼</button>` +
     `</div>`;
 
+  const img = ov.querySelector('.kt-story-portrait img');
+  const nameEl = ov.querySelector('.kt-story-name');
+  const textEl = ov.querySelector('.kt-story-text');
+  const render = () => {
+    const ln = lines[i];
+    const knight = ln.who === 'knight';
+    img.src = `${ASSETS.characters}${knight ? (KNIGHT_PORTRAIT[beat.moment] || 'knight/knight_focused') : beat.portrait}.png`;
+    img.style.display = '';
+    ov.classList.toggle('knight-turn', knight);
+    nameEl.textContent = knight ? 'Sir Knight' : beat.speaker;
+    textEl.textContent = ln.text;
+  };
+  render();
+
   const close = () => { ov.remove(); onDone && onDone(); };
+  const advance = () => { if (i < lines.length - 1) { i += 1; render(); } else close(); };
   ov.querySelector('.kt-story-skip').addEventListener('click', close);
-  ov.querySelector('.kt-story-next').addEventListener('click', close);
+  ov.querySelector('.kt-story-next').addEventListener('click', advance);
 
   const hil = ov.querySelector('.kt-story-hil');
   ov.querySelectorAll('.kt-story-lang button').forEach((b) =>

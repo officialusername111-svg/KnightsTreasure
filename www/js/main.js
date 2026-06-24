@@ -12,14 +12,22 @@ import { createGamblerScene } from './ui/gambler.js';
 import { createBlacksmithScene } from './ui/blacksmith.js';
 import { createQuestsScene } from './ui/quests.js';
 import { createGloryScene } from './ui/glory.js';
+import { createRanksScene } from './ui/ranks.js';
+import { createMailScene } from './ui/mail.js';
 import { createLevelMapScene } from './ui/levelMap.js';
 import { createSettingsScene } from './ui/settings.js';
 import { createStoryLogScene, showStoryDialog } from './ui/story.js';
 import { createNameEntryScene } from './ui/nameEntry.js';
+import { pageFanfare } from './ui/fanfare.js';
 import { NPC } from './data/npc.js';
 import { STORY } from './data/story.js';
+import { ACH_BY_ID } from './data/achievements.js';
+import { getLevel } from './data/levels.js';
+import { TASKS, dailyModifier, markDailyLevelDone } from './systems/dailyDuty.js';
 import * as stamina from './systems/stamina.js';
 import { earn, stageMilestone } from './systems/economy.js';
+import { syncMail } from './services/social.js';
+import * as audio from './systems/audio.js';
 
 async function boot() {
   const adapter = createStorageAdapter();
@@ -29,8 +37,32 @@ async function boot() {
   let gameState = createGameState(stamina.refresh(await loadSave(adapter)));
   let playTarget = { stage: 1, level: 1 };
 
+  audio.configure(gameState.save.settings);
+  // Web Audio needs a user gesture to start on mobile; resume on first interaction.
+  const wake = () => { audio.resume(); window.removeEventListener('pointerdown', wake); };
+  window.addEventListener('pointerdown', wake, { once: true });
+  document.addEventListener('visibilitychange', () => (document.hidden ? audio.suspend() : audio.resume()));
+
   function save() { return gameState.save; }
   function persist() { return persistSave(adapter, save()); }
+
+  // Generate mail (rank/achievement/comment) + queue achievement fanfares from local triggers.
+  function sync() { syncMail(save()); persist(); }
+
+  // Show a full-page celebration for each achievement queued since last launch (once each).
+  function drainFanfare(sceneEl) {
+    const queue = save().pendingFanfare || [];
+    if (!queue.length) return;
+    const id = queue.shift();
+    persist();
+    const a = ACH_BY_ID[id];
+    pageFanfare(sceneEl, {
+      settings: save().settings,
+      title: a ? a.name : 'Achievement unlocked!',
+      subtitle: a ? a.desc : '',
+      onDone: () => drainFanfare(sceneEl),     // chain through the rest
+    });
+  }
 
   // ---- overlays (don't tear down the scene beneath) ----
   function openOverlay(buildEl) {
@@ -43,23 +75,61 @@ async function boot() {
 
   // ---- home + sections ----
   function showHome() {
-    scenes.mount(createHomeScene({
+    const scene = createHomeScene({
       gameState,
       onPlay: () => showGameAt(save().currentStage, save().currentLevel),
       onSection: (key) => showSection(key),
       onMenu: () => openSettings(),
       onMap: () => openMap(),
-    }));
+      onMail: () => openMail(),
+    });
+    scenes.mount(scene);
+    drainFanfare(scene);
   }
 
   function showSection(key) {
     if (key === 'inn') openInn();
-    else if (key === 'daily') scenes.mount(createQuestsScene({ gameState, adapter, onBack: () => showHome() }));
-    else if (key === 'glory' || key === 'rank') openGlory();
+    else if (key === 'daily') openQuests();
+    else if (key === 'glory') openGlory();
+    else if (key === 'rank') openRanks();
+    else if (key === 'blacksmith') openBlacksmith();
     else showPlaceholder(key);
   }
 
   function openGlory() { scenes.mount(createGloryScene({ gameState, onBack: () => showHome() })); }
+  function openRanks() { scenes.mount(createRanksScene({ gameState, adapter, onBack: () => showHome() })); }
+  function openQuests() {
+    scenes.mount(createQuestsScene({ gameState, adapter, onBack: () => showHome(), onPlayDaily: (id) => showDailyLevel(id) }));
+  }
+
+  // Daily duty levels (no stamina cost, GDD): a dedicated board + the day's modifier.
+  function showDailyLevel(taskId) {
+    const task = TASKS.find((t) => t.id === taskId);
+    const mod = task && task.modifier ? dailyModifier().id : null;
+    const base = getLevel(Math.min(save().currentStage, 10), 12) || getLevel(1, 12);
+    const level = { ...base, id: `daily-${taskId}`, levelInStage: 12 };
+    if (mod === 'speed' && level.timeLimit) level.timeLimit = Math.round(level.timeLimit * 0.7);
+    if (mod === 'fast_flip') level.flipMemoryMs = Math.round(level.flipMemoryMs * 0.6);
+    mountDailyGame(taskId, level, mod);
+  }
+  function mountDailyGame(taskId, level, mod) {
+    gameState = { save: save(), current: level };
+    scenes.mount(createGameScene({
+      gameState, adapter, bus,
+      daily: { id: taskId, modifier: mod,
+        onDone: () => { markDailyLevelDone(save(), taskId); persist(); sync(); openQuests(); } },
+      onRetry: () => mountDailyGame(taskId, level, mod),
+      onHome: () => showHome(),
+      onStory: () => openStoryLog(),
+      onSettings: () => openSettings(),
+    }));
+  }
+  function openMail() { scenes.mount(createMailScene({ gameState, adapter, onBack: () => showHome() })); }
+  function openBlacksmith() {
+    const scene = createBlacksmithScene({ gameState, adapter, onBack: () => showHome() });
+    scenes.mount(scene);
+    maybeIntro(scene, 'blacksmith');
+  }
   function openMap() {
     scenes.mount(createLevelMapScene({
       gameState, onBack: () => showHome(), onPlayStage: (n) => showGameAt(n, 1),
@@ -72,10 +142,6 @@ async function boot() {
     maybeIntro(scene, 'inn');
   }
   function openHall(key) {
-    if (key === 'blacksmith') {
-      scenes.mount(createBlacksmithScene({ gameState, adapter, onBack: () => openInn() }));
-      return;
-    }
     const scene = key === 'bard'
       ? createBardScene({ gameState, adapter, onBack: () => openInn() })
       : createGamblerScene({ gameState, adapter, onBack: () => openInn() });
@@ -131,6 +197,7 @@ async function boot() {
 
   function onLevelCleared(advanced) {
     gameState = advanced;                 // save now has updated stars + forward pointer
+    sync();                               // queue any new achievements + ranking mail
     const cleared = playTarget;
     const next = nextPosition(cleared.stage, cleared.level);
 
@@ -161,11 +228,11 @@ async function boot() {
 
   function showNameEntry() {
     scenes.mount(createNameEntryScene({
-      onConfirm: (name) => { save().displayName = name; persist(); showHome(); },
+      onConfirm: (name) => { save().displayName = name; persist(); sync(); showHome(); },
     }));
   }
 
-  if (save().displayName) showHome();
+  if (save().displayName) { sync(); showHome(); }
   else showNameEntry();
 }
 

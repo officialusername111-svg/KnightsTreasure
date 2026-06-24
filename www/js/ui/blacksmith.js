@@ -1,8 +1,11 @@
 import { ASSETS } from '../data/config.js';
+import { NPC, BROKE_LINE } from '../data/npc.js';
 import { POWERUPS, unlockedPowerups } from '../data/items.js';
 import { spend } from '../systems/economy.js';
 import { persistSave } from '../core/save.js';
+import { sfx } from '../systems/audio.js';
 import { sectionTop, toast, showInfo } from './modal.js';
+import { fanfare } from './fanfare.js';
 
 const BG_BLACKSMITH = 'assets/images/backgrounds/bg_blacksmith.png';
 const PORTRAIT = 'assets/images/characters/blacksmith/blacksmith_happy.png';
@@ -81,9 +84,11 @@ export function createBlacksmithScene({ gameState, adapter, onBack }) {
         save.inventory[item.id] = (save.inventory[item.id] || 0) + 1;
         persistSave(adapter, save);
         refreshUI();
+        sfx('coin');
+        fanfare(scene, { settings: save.settings, kind: 'small', originY: 40 });
         toast(scene, 'Forged! ' + item.name + ' added to your pack');
       } else {
-        toast(scene, 'Not enough coins, knight.');
+        showInfo(scene, NPC.blacksmith.speaker, `<p>${BROKE_LINE.blacksmith}</p>`);
       }
     })
   );

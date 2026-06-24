@@ -4,10 +4,17 @@ import * as stamina from '../systems/stamina.js';
 import { COIN_SOURCES } from '../systems/economy.js';
 
 const MENU_ICON = 'M4 7h16M4 12h16M4 17h16';
+// Placeholder nav glyphs until dedicated art lands (Smith / Mail — see spec §10).
+const ANVIL_SVG = '<svg class="ic" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19h22a8 8 0 0 1-6 7l2 5H14l2-5a7 7 0 0 1-7-7z"/><path d="M31 19l6-3v6"/><path d="M16 36h16l2 4H14z"/></svg>';
+const MAIL_SVG = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>';
 
-const SECTIONS = [
+// Right rail = journey/economy; left rail = recognition. Mail lives in the top bar.
+const RAIL_RIGHT = [
   { key: 'daily', label: 'Quests', icon: 'ui_nav_quests' },
   { key: 'inn', label: 'The Inn', icon: 'ui_nav_inn' },
+  { key: 'blacksmith', label: 'Smith', svg: ANVIL_SVG },
+];
+const RAIL_LEFT = [
   { key: 'glory', label: 'Glory', icon: 'ui_nav_glory' },
   { key: 'rank', label: 'Ranks', icon: 'ui_nav_rank' },
 ];
@@ -16,10 +23,11 @@ export const SECTION_TITLES = {
   daily: 'Daily Quests',
   inn: 'The Inn',
   glory: 'Hall of Glory',
-  rank: 'Global Rank',
+  rank: 'Leaderboards',
+  blacksmith: 'Blacksmith',
 };
 
-export function createHomeScene({ gameState, onPlay, onSection, onMenu, onMap }) {
+export function createHomeScene({ gameState, onPlay, onSection, onMenu, onMap, onMail }) {
   const save = gameState.save;
   const stage = save.currentStage || 1;
   const pct = Math.round((save.currentLevel / 25) * 100);
@@ -27,6 +35,7 @@ export function createHomeScene({ gameState, onPlay, onSection, onMenu, onMap })
   const rank = rankFor(save);
   const stam = stamina.current(save);
   const canPlay = stam >= 1;
+  const unread = (save.mail || []).filter((m) => !m.read).length;
 
   const scene = document.createElement('div');
   scene.id = 'kt-home';
@@ -43,7 +52,10 @@ export function createHomeScene({ gameState, onPlay, onSection, onMenu, onMap })
           `<span class="kt-crest-lvl">${save.currentLevel}</span></div>` +
         `<div class="kt-ident-txt"><b>${name}</b><span class="kt-rank">${rank.name}</span></div>` +
       `</div>` +
-      `<button type="button" class="kt-icon-btn" id="kt-settings" aria-label="Menu"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="${MENU_ICON}"/></svg></button>` +
+      `<div class="kt-topbtns">` +
+        `<button type="button" class="kt-mail-btn" id="kt-mail" aria-label="Mail">${MAIL_SVG}${unread ? `<span class="kt-mail-badge">${unread > 9 ? '9+' : unread}</span>` : ''}</button>` +
+        `<button type="button" class="kt-icon-btn" id="kt-settings" aria-label="Menu"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="${MENU_ICON}"/></svg></button>` +
+      `</div>` +
     `</div>` +
     `<div class="kt-res-stack">` +
       `<button type="button" class="kt-res" id="kt-res-stam"><img src="${ASSETS.ui}ui_stamina.png" alt="" onerror="this.onerror=null;this.src='${ASSETS.ui}ui_tankard_full.png'"><span id="kt-stam-val">${stam}/${stamina.MAX_STAMINA}</span></button>` +
@@ -56,24 +68,28 @@ export function createHomeScene({ gameState, onPlay, onSection, onMenu, onMap })
       `<div class="kt-stage-prog"><div class="kt-stage-bar"><span style="width:${pct}%"></span></div>` +
         `<div class="kt-stage-lvl">Level ${save.currentLevel} / 25 · view map</div></div>` +
     `</button>` +
-    `<div class="kt-rail"></div>` +
+    `<div class="kt-rail left" id="kt-rail-left"></div>` +
+    `<div class="kt-rail" id="kt-rail-right"></div>` +
     `<div class="kt-home-bottom">` +
       `<button type="button" class="kt-home-play${canPlay ? '' : ' depleted'}"><span class="lbl">Play</span>` +
         `<span class="sub">${canPlay ? `Continue · Level ${save.currentLevel}` : 'Out of stamina — rest at the Inn'}</span></button>` +
     `</div>`;
 
-  const rail = scene.querySelector('.kt-rail');
-  SECTIONS.forEach((s) => {
+  const buildRail = (railEl, items) => items.forEach((s) => {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'kt-rail-btn';
-    b.innerHTML =
-      `<img class="ic" src="${ASSETS.ui}${s.icon}.png" alt="" onerror="this.style.display='none'">` +
-      `<span class="lbl">${s.label}</span>`;
+    const icon = s.svg
+      ? s.svg
+      : `<img class="ic" src="${ASSETS.ui}${s.icon}.png" alt="" onerror="this.style.display='none'">`;
+    b.innerHTML = `${icon}<span class="lbl">${s.label}</span>`;
     b.addEventListener('click', () => onSection(s.key));
-    rail.appendChild(b);
+    railEl.appendChild(b);
   });
+  buildRail(scene.querySelector('#kt-rail-right'), RAIL_RIGHT);
+  buildRail(scene.querySelector('#kt-rail-left'), RAIL_LEFT);
 
+  scene.querySelector('#kt-mail').addEventListener('click', () => onMail && onMail());
   scene.querySelector('.kt-home-play').addEventListener('click', () => (canPlay ? onPlay() : onSection('inn')));
   scene.querySelector('#kt-stage-head').addEventListener('click', () => onMap && onMap());
   scene.querySelector('#kt-res-coins').addEventListener('click', () => showCoinInfo(scene));

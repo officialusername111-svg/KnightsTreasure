@@ -7,7 +7,14 @@ export function computeStars({ mistakes, pairs, timeUsed, parTime }) {
   return Math.max(1, Math.min(3, stars));
 }
 
+// Mistake penalty is capped at the points earned so the score never goes negative
+// (a level cleared should never read as a negative result).
+export function mistakePenalty({ matches, timeRemaining, comboBonus, mistakes }) {
+  const positive = matches * 100 + timeRemaining * 10 + comboBonus;
+  return Math.min(mistakes * 50, positive);
+}
+
 export function computeScore({ matches, timeRemaining, comboBonus, mistakes }) {
-  const raw = matches * 100 + timeRemaining * 10 + comboBonus - mistakes * 50;
-  return Math.max(0, raw);
+  const positive = matches * 100 + timeRemaining * 10 + comboBonus;
+  return positive - mistakePenalty({ matches, timeRemaining, comboBonus, mistakes });
 }

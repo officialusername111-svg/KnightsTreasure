@@ -1,0 +1,76 @@
+/* Ranks (D16): leaderboards scene. Shares tokens + .kt-sec/.kt-panel/.kt-seg/.kt-buy
+   with sections.css + home.css. Mobile-first ~390px; body scrolls, no nested scroll. */
+
+/* tab row: five segments, wrap-safe on narrow screens */
+.kt-ranks-seg { flex-wrap:wrap; justify-content:center; gap:2px; }
+.kt-ranks-seg button { padding:6px 10px; }
+
+/* stage selector (1..10) — shown only on the Stage tab */
+.kt-ranks-stagesel { display:flex; flex-wrap:wrap; gap:6px; }
+.kt-ranks-stagesel[hidden] { display:none; }
+.kt-ranks-stagesel button { flex:1 0 auto; min-width:30px; font-family:inherit; font-weight:700; font-size:13px;
+  color:#a07832; background:rgba(8,5,1,.6); border:1px solid rgba(201,146,42,.3); border-radius:9px;
+  padding:7px 0; cursor:pointer; }
+.kt-ranks-stagesel button.on { color:#2a1400; border-color:transparent;
+  background:linear-gradient(180deg,#f6d57a,#c9821a); }
+
+.kt-ranks-blurb { color:#caa45a; font-size:11px; letter-spacing:1.5px; text-transform:uppercase;
+  text-align:center; text-shadow:0 1px 2px #000; }
+
+/* broadcast panel (rank 1-3) */
+.kt-rk-cast { background:linear-gradient(100deg, rgba(245,200,66,.18), rgba(8,5,1,.62) 78%);
+  border:1px solid rgba(245,200,66,.45); border-radius:14px; padding:12px 13px; }
+.kt-rk-cast .hd { color:var(--gold-lt); font-size:13px; font-weight:700; line-height:1.3; }
+.kt-rk-cast .rowf { display:flex; gap:8px; margin-top:10px; }
+.kt-rk-cast input { flex:1; min-width:0; font-family:inherit; font-size:14px; color:var(--gold-lt);
+  background:rgba(42,24,0,.7); border:1px solid var(--gold); border-radius:9px; padding:9px 11px; outline:none; }
+.kt-rk-cast input::placeholder { color:#8a6a2a; }
+.kt-rk-cast .kt-buy { flex:none; }
+.kt-rk-cast .hint { color:#a07832; font-size:10.5px; margin-top:7px; }
+.kt-rk-cast.sealed { background:rgba(8,5,1,.66); border-color:rgba(201,146,42,.3); }
+.kt-rk-cast .ln { color:#cdae72; font-size:13px; font-style:italic; line-height:1.5; margin-top:8px; }
+.kt-rk-cast .lk { color:#8a6a2a; font-size:11px; letter-spacing:.5px; margin-top:7px; }
+
+/* board */
+.kt-ranks-board { display:flex; flex-direction:column; }
+.kt-rk-row { display:flex; align-items:center; gap:11px; padding:10px 12px; min-height:46px; box-sizing:border-box; }
+.kt-rk-row:not(:last-child) { border-bottom:1px solid rgba(201,146,42,.14); }
+.kt-rk-row .rk { flex:none; width:30px; text-align:center; color:#caa45a; font-size:14px; font-weight:700; }
+.kt-rk-row .who { flex:1; min-width:0; line-height:1.3; }
+.kt-rk-row .who b { display:block; color:var(--gold-lt); font-size:14.5px; font-weight:700;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.kt-rk-row .who .ti { display:block; color:#a07832; font-size:11px; }
+.kt-rk-row .who .cm { display:block; color:#cdae72; font-size:11.5px; font-style:italic; line-height:1.4; margin-top:3px; }
+.kt-rk-row .sc { flex:none; color:var(--gold-lt); font-size:15px; font-weight:700; text-align:right; }
+.kt-rk-row .you-tag { font-style:normal; font-size:9px; letter-spacing:1px; text-transform:uppercase;
+  color:#2a1400; background:linear-gradient(180deg,#f6d57a,#c9821a); border-radius:5px; padding:1px 5px; vertical-align:middle; }
+
+/* your row highlight (gold inset) */
+.kt-rk-row.me { background:linear-gradient(90deg, rgba(245,200,66,.16), rgba(245,200,66,.04) 80%);
+  box-shadow:inset 0 0 0 1.5px var(--gold); border-radius:11px; }
+.kt-rk-row.me:not(:last-child) { border-bottom:none; }
+.kt-rk-row.me .rk { color:var(--gold-lt); }
+
+/* top-3 medal accents */
+.kt-rk-row:nth-child(1) .rk { color:#ffdf6b; text-shadow:0 0 8px rgba(255,210,80,.55); }
+.kt-rk-row:nth-child(2) .rk { color:#dfe3ea; }
+.kt-rk-row:nth-child(3) .rk { color:#e6a86a; }
+
+/* separator before an appended out-of-slice "you" row */
+.kt-rk-gap { display:flex; align-items:center; justify-content:center; padding:4px 0;
+  color:#6b4c1a; font-size:14px; letter-spacing:3px; border-bottom:1px solid rgba(201,146,42,.14); }
+
+.kt-rk-empty { padding:22px 12px; text-align:center; color:#8a6a2a; font-size:13px; }
+
+/* skeleton rows (same metrics as real rows → no layout shift) */
+.kt-rk-row.sk { pointer-events:none; }
+.kt-rk-row.sk .who { display:flex; flex-direction:column; gap:5px; }
+.sk-b { display:inline-block; height:11px; border-radius:5px;
+  background:linear-gradient(90deg, rgba(201,146,42,.12), rgba(201,146,42,.26), rgba(201,146,42,.12));
+  background-size:200% 100%; animation:kt-rk-shimmer 1.1s ease-in-out infinite; }
+.sk-b.sm { height:9px; }
+@keyframes kt-rk-shimmer { 0% { background-position:200% 0; } 100% { background-position:-200% 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .sk-b { animation:none; }
+}

@@ -1,16 +1,17 @@
 import { ASSETS } from '../data/config.js';
-import { NPC } from '../data/npc.js';
+import { NPC, BROKE_LINE } from '../data/npc.js';
 import { CONSUMABLES } from '../data/items.js';
 import { persistSave } from '../core/save.js';
 import { buyDrink } from '../systems/tavern.js';
 import * as stamina from '../systems/stamina.js';
+import { sfx } from '../systems/audio.js';
 import { showInfo, sectionTop, npcHero, toast } from './modal.js';
+import { fanfare } from './fanfare.js';
 
 // Tavern sub-areas (GDD §Tavern Sub-Areas). Daily Duty lives on the home nav as Quests.
 const HALLS = [
-  { key: 'bard',       name: "Bard's Corner", sub: 'Songs & tales',    portrait: 'bard/bard_playful' },
-  { key: 'gambler',    name: "Gambler's Den", sub: 'Dice of fortune',  portrait: 'gambler/gambler_sly' },
-  { key: 'blacksmith', name: 'Blacksmith',    sub: 'Forge power-ups',  portrait: 'blacksmith/blacksmith_happy' },
+  { key: 'bard',    name: "Bard's Corner", sub: 'Songs & tales',   portrait: 'bard/bard_playful' },
+  { key: 'gambler', name: "Gambler's Den", sub: 'Dice of fortune', portrait: 'gambler/gambler_sly' },
 ];
 
 // The Inn (Tavern main room, GDD §Tavern). Buy drinks to refill stamina.
@@ -74,11 +75,13 @@ export function createInnScene({ gameState, adapter, onBack, onHall }) {
       if (res.ok) {
         persistSave(adapter, save);
         refreshUI();
+        sfx('coin');
+        fanfare(scene, { settings: save.settings, kind: 'small', originY: 40 });
         toast(scene, `Drink poured — +${res.restored} stamina`);
       } else if (res.reason === 'full') {
         toast(scene, 'Your stamina is already full, knight.');
       } else {
-        toast(scene, 'Not enough coins — earn more in battle.');
+        showInfo(scene, NPC.inn.speaker, `<p>${BROKE_LINE.inn}</p>`);
       }
     })
   );
