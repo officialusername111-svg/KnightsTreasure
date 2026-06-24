@@ -83,6 +83,9 @@
 .kt-q-reset { align-self:center; display:flex; align-items:center; gap:6px; color:#d9b878; font-size:12px;
   background:rgba(8,5,1,.5); border-radius:999px; padding:6px 14px; box-shadow:inset 0 0 0 1px rgba(201,146,42,.2); }
 .kt-q-reset b { color:var(--gold-lt); font-weight:700; }
+.kt-q-window { align-self:center; display:flex; align-items:center; gap:6px; color:#d9b878; font-size:12px;
+  background:rgba(8,5,1,.5); border-radius:999px; padding:5px 14px; box-shadow:inset 0 0 0 1px rgba(232,85,10,.3); margin-top:-6px; }
+.kt-q-window b { color:var(--ember); font-weight:700; font-variant-numeric:tabular-nums; }
 
 .kt-task { background:rgba(8,5,1,.7); border:1px solid rgba(201,146,42,.3); border-radius:14px;
   padding:13px; display:flex; flex-direction:column; gap:11px; }

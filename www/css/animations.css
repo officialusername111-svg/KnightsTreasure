@@ -78,8 +78,15 @@
 @keyframes kt-spin { to { transform:rotate(360deg); } }
 @keyframes kt-fade { from { opacity:0; } to { opacity:1; } }
 
+/* ── time running out ── */
+.kt-stat .val.danger { color:#ff6a4a; animation:kt-danger-pulse .9s ease-in-out infinite; }
+@keyframes kt-danger-pulse { 0%,100%{transform:scale(1);opacity:1;} 50%{transform:scale(1.16);opacity:.7;} }
+#kt-board-wrap.low-time::after { content:''; position:absolute; inset:0; pointer-events:none; z-index:6;
+  box-shadow:inset 0 0 60px 12px rgba(220,40,20,.55); animation:kt-vignette .95s ease-in-out infinite; }
+@keyframes kt-vignette { 0%,100%{opacity:.28;} 50%{opacity:.85;} }
+
 @media (prefers-reduced-motion: reduce) {
   .kt-tile.kt-pop, .kt-tile.kt-in, .kt-banner, .kt-star.on { animation:none; }
   .kt-spark, .kt-ember, .kt-confetti { display:none; }
-  .kt-fanfare-rays { animation:none; }
+  .kt-fanfare-rays, .kt-stat .val.danger, #kt-board-wrap.low-time::after { animation:none; }
 }

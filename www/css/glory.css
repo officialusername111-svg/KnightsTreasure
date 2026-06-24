@@ -73,3 +73,19 @@
   border:1px solid var(--line); overflow:hidden; }
 .kt-glory-trophy-prog .kt-stage-bar span { display:block; height:100%; background:linear-gradient(90deg,#f5c842,#e09000); }
 .kt-glory-trophy-prog .cnt { flex:none; color:#caa45a; font-size:10px; font-weight:700; letter-spacing:.3px; }
+
+/* "Your placements" rendered as a knight's parchment diary */
+.kt-diary { position:relative; color:#4a3a1e; padding:16px 18px 16px 24px; border-radius:6px 13px 13px 6px;
+  background:linear-gradient(180deg,#efe0bb,#e3d0a0); transform:rotate(-.4deg);
+  box-shadow:0 8px 22px rgba(0,0,0,.5), inset 0 0 0 1px #c9b27e, inset 7px 0 0 #b89a5a; }
+.kt-diary-ribbon { position:absolute; top:-4px; right:20px; width:18px; height:44px;
+  background:linear-gradient(180deg,#b3331f,#7a2113); box-shadow:0 2px 4px rgba(0,0,0,.4);
+  clip-path:polygon(0 0,100% 0,100% 100%,50% 80%,0 100%); }
+.kt-diary-title { font-family:Georgia,'Times New Roman',serif; font-style:italic; font-weight:700; font-size:15px;
+  color:#5a3a16; border-bottom:1px solid rgba(90,58,22,.35); padding-bottom:6px; margin-bottom:9px; }
+.kt-diary-body { display:flex; flex-direction:column; gap:8px; }
+.kt-diary-line { font-family:Georgia,'Times New Roman',serif; font-style:italic; font-size:13.5px; line-height:1.55;
+  color:#4a3a1e; background-image:linear-gradient(transparent 94%, rgba(90,58,22,.18) 0); }
+.kt-diary-line .dt { font-variant:small-caps; font-weight:700; letter-spacing:.5px; color:#6a4a1e; }
+.kt-diary-line b { font-style:normal; color:#7a3b16; font-weight:700; }
+.kt-diary-line.empty { color:#7a6440; }

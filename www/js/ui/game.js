@@ -68,12 +68,14 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
   footer.id = 'kt-footer';
   footer.innerHTML = `<button type="button" class="kt-foot-home">Home</button><button type="button" class="kt-foot-story">Story</button><button type="button" class="kt-foot-settings">Settings</button>`;
   // Leaving mid-level forfeits it (stamina already spent) — confirm first.
+  // Abandoning ends the game cleanly: stop the timer + any pending flip, then leave.
+  const endGame = () => { finished = true; stopTimer(); if (mismatchTimer) clearTimeout(mismatchTimer); };
   const leaveGuard = (action) => {
     if (finished) { action(); return; }
     confirmModal(scene, {
       title: 'Abandon this level?',
       body: "Leave now and you forfeit this level — your stamina won't be refunded.",
-      confirmLabel: 'Leave', cancelLabel: 'Stay', onConfirm: action,
+      confirmLabel: 'Leave', cancelLabel: 'Stay', onConfirm: () => { endGame(); action(); },
     });
   };
   footer.querySelector('.kt-foot-home').addEventListener('click', () => leaveGuard(() => onHome && onHome()));
@@ -280,6 +282,10 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
       if (frozen) return;            // Shield holds the countdown
       timeLeft -= 1;
       hud.setTime(timeLeft);
+      // running-out feedback: pulsing red vignette + a soft tick in the last 10s
+      const low = timeLeft <= 10 && timeLeft > 0;
+      boardWrap.classList.toggle('low-time', low);
+      if (low) sfx('tap');
       if (timeLeft <= 0) lose();
     }, 1000);
   }
@@ -287,6 +293,7 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
   function stopTimer() {
     if (timerId) clearInterval(timerId);
     timerId = null;
+    boardWrap.classList.remove('low-time');
   }
 
   // ---- power-up tray (D10/D11; first pass: Raven, Torch, Eagle Eye, Hourglass, Shield) ----

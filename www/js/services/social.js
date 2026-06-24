@@ -140,10 +140,11 @@ export function syncMail(save) {
       pushMail(save, { id: `rankdown_${scope}_${today}`, type: 'rank-down', title: 'Rivals are gaining',
         body: `You slipped to #${rank} on the ${scope} board. Win a few levels to climb back.` });
     }
-    if (rank <= 3 && !(save.broadcast && (save.broadcast.text || save.broadcast.locked))) {
-      pushMail(save, { id: `broadcast_invite_${scope}`, type: 'comment', title: 'Leave a word for the realm',
-        body: 'You placed top-3! Other knights can see a short line of yours. Open to write it.', broadcastInvite: true });
-    }
+  }
+  // Invite the knight to pen their word for the realm (any player; open to write it).
+  if (!(save.broadcast && (save.broadcast.text || save.broadcast.locked))) {
+    pushMail(save, { id: 'broadcast_invite', type: 'comment', title: 'Leave a word for the realm',
+      body: 'Pen a short line of encouragement, knight — other knights will see it beside your name on the boards. Open this to write and send it.', broadcastInvite: true });
   }
   // a daily motivational comment from a top bot
   pushMail(save, { id: `comment_${today}`, type: 'comment', title: 'A word from a champion',

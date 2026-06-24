@@ -62,13 +62,12 @@ export function createGloryScene({ gameState, onBack }) {
   // ----- placements -----
   const history = save.rankHistory || {};
   const placeKeys = Object.keys(history).filter((k) => typeof history[k] === 'number');
+  // Rendered as a knight's diary page (parchment) rather than chips.
   const placements = placeKeys.length
     ? placeKeys
-        .map((k) =>
-          `<span class="kt-chip kt-glory-place">${SCOPE_LABEL[k] || k} · best ${ordinal(history[k])}</span>`
-        )
+        .map((k) => `<p class="kt-diary-line"><span class="dt">${SCOPE_LABEL[k] || k}</span> — I climbed to <b>${ordinal(history[k])}</b> place.</p>`)
         .join('')
-    : `<p class="kt-glory-empty">Play to earn a place on the boards.</p>`;
+    : `<p class="kt-diary-line empty">The pages await your first triumph, knight.</p>`;
 
   // ----- stats tiles -----
   const stat = (label, val, sub) =>
@@ -146,9 +145,13 @@ export function createGloryScene({ gameState, onBack }) {
       `</div>` +
       titleBanner +
 
-      // Placements
+      // Placements — the knight's diary
       `<div class="kt-sub-head left">Your placements</div>` +
-      `<div class="kt-glory-places">${placements}</div>` +
+      `<div class="kt-diary">` +
+        `<span class="kt-diary-ribbon" aria-hidden="true"></span>` +
+        `<div class="kt-diary-title">From the Knight's Chronicle</div>` +
+        `<div class="kt-diary-body">${placements}</div>` +
+      `</div>` +
 
       // Stats
       `<div class="kt-sub-head left">Your deeds</div>` +

@@ -22,7 +22,7 @@ const SCOPE_BLURB = {
   monthly: 'This month’s finest',
   allTime: 'Legends of all time',
 };
-const TOP_SLICE = 25;
+const TOP_SLICE = 10;
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const fmt = (n) => Math.round(n || 0).toLocaleString('en-US');
@@ -88,7 +88,8 @@ export function createRanksScene({ gameState, adapter, onBack }) {
 
   function rowHtml(r, topComment) {
     const showComment = topComment && r.comment && String(r.comment).trim();
-    return `<div class="kt-rk-row${r.you ? ' me' : ''}">` +
+    const place = r.rank <= 3 ? ` top p${r.rank}` : '';
+    return `<div class="kt-rk-row${r.you ? ' me' : ''}${place}">` +
       `<span class="rk">${r.rank}</span>` +
       `<span class="who">` +
         `<b>${esc(r.name)}${r.you ? ' <em class="you-tag">You</em>' : ''}</b>` +

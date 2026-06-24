@@ -4,6 +4,14 @@ import { persistSave } from '../core/save.js';
 import { TASKS, BONUS, progressOf, isDone, isClaimed, isAccepted, acceptTask,
   allClaimed, bonusClaimed, claim, dailyModifier } from '../systems/dailyDuty.js';
 import { sectionTop, toast } from './modal.js';
+import { fanfare } from './fanfare.js';
+
+const TWO_H = 2 * 60 * 60 * 1000;
+function twoHourLeft() {
+  const ms = TWO_H - (Date.now() % TWO_H);
+  const h = Math.floor(ms / 3.6e6), m = Math.floor((ms % 3.6e6) / 6e4), s = Math.floor((ms % 6e4) / 1000);
+  return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
 
 const ICONS = { puzzle: 'ui_power_raven', challenge: 'ui_power_hourglass', guild: 'ui_nav_rank' };
 const STREAK = [
@@ -70,6 +78,7 @@ export function createQuestsScene({ gameState, adapter, onBack, onPlayDaily }) {
     sectionTop("Knight's daily duty", 'Daily Quests', save.coins || 0) +
     `<div class="kt-sec-body">` +
       `<div class="kt-q-reset">Resets in <b>${resetCountdown()}</b> · no stamina cost</div>` +
+      `<div class="kt-q-window">⏳ Bonus window <b id="kt-2h">${twoHourLeft()}</b></div>` +
       TASKS.map(taskCard).join('') +
       `<div class="kt-bonus">` +
         `<div class="kt-bonus-txt"><b>Clear all three</b><span>A hero's bonus awaits</span></div>` +
@@ -89,9 +98,20 @@ export function createQuestsScene({ gameState, adapter, onBack, onPlayDaily }) {
   scene.querySelectorAll('[data-claim]').forEach((b) =>
     b.addEventListener('click', () => {
       const res = claim(save, b.dataset.claim);
-      if (res.ok) { persistSave(adapter, save); toast(scene, 'Reward claimed!'); rerender(); }
-      else toast(scene, res.reason === 'incomplete' ? 'Finish the task first, knight.' : 'Already claimed.');
+      if (res.ok) {
+        persistSave(adapter, save);
+        fanfare(scene, { settings: save.settings, kind: 'small', originY: 40 });
+        toast(scene, 'Reward claimed!');
+        rerender();
+      } else toast(scene, res.reason === 'incomplete' ? 'Finish the task first, knight.' : 'Already claimed.');
     }));
+
+  // Live 2-hour bonus-window countdown; self-clears when the scene detaches.
+  const cd = scene.querySelector('#kt-2h');
+  const tick = setInterval(() => {
+    if (!cd.isConnected) { clearInterval(tick); return; }
+    cd.textContent = twoHourLeft();
+  }, 1000);
 
   return scene;
 }
