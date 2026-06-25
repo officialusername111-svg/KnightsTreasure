@@ -59,15 +59,13 @@ export function createGloryScene({ gameState, onBack }) {
       `</div>`
     : '';
 
-  // ----- placements -----
+  // ----- placements (knight's diary, turned a page at a time like a book) -----
   const history = save.rankHistory || {};
   const placeKeys = Object.keys(history).filter((k) => typeof history[k] === 'number');
-  // Rendered as a knight's diary page (parchment) rather than chips.
-  const placements = placeKeys.length
-    ? placeKeys
-        .map((k) => `<p class="kt-diary-line"><span class="dt">${SCOPE_LABEL[k] || k}</span> — I climbed to <b>${ordinal(history[k])}</b> place.</p>`)
-        .join('')
-    : `<p class="kt-diary-line empty">The pages await your first triumph, knight.</p>`;
+  const placementLines = placeKeys.length
+    ? placeKeys.map((k) => `<p class="kt-diary-line"><span class="dt">${SCOPE_LABEL[k] || k}</span> — I climbed to <b>${ordinal(history[k])}</b> place.</p>`)
+    : [`<p class="kt-diary-line empty">The pages await your first triumph, knight.</p>`];
+  const DIARY_PER_PAGE = 4;
 
   // ----- stats tiles -----
   const stat = (label, val, sub) =>
@@ -145,12 +143,13 @@ export function createGloryScene({ gameState, onBack }) {
       `</div>` +
       titleBanner +
 
-      // Placements — the knight's diary
+      // Placements — the knight's diary, paged like a book
       `<div class="kt-sub-head left">Your placements</div>` +
-      `<div class="kt-diary">` +
+      `<div class="kt-diary" id="kt-diary">` +
         `<span class="kt-diary-ribbon" aria-hidden="true"></span>` +
         `<div class="kt-diary-title">From the Knight's Chronicle</div>` +
-        `<div class="kt-diary-body">${placements}</div>` +
+        `<div class="kt-diary-body" id="kt-diary-body"></div>` +
+        `<div class="kt-diary-pager" id="kt-diary-pager"></div>` +
       `</div>` +
 
       // Stats
@@ -163,6 +162,29 @@ export function createGloryScene({ gameState, onBack }) {
     `</div>`;
 
   scene.querySelector('.kt-sec-back').addEventListener('click', onBack);
+
+  // Diary pagination — turn pages with the ❮ ❯ arrows.
+  let diaryPage = 0;
+  const diaryBody = scene.querySelector('#kt-diary-body');
+  const diaryPager = scene.querySelector('#kt-diary-pager');
+  function renderDiary() {
+    const count = Math.max(1, Math.ceil(placementLines.length / DIARY_PER_PAGE));
+    diaryPage = Math.min(Math.max(0, diaryPage), count - 1);
+    const slice = placementLines.slice(diaryPage * DIARY_PER_PAGE, diaryPage * DIARY_PER_PAGE + DIARY_PER_PAGE);
+    diaryBody.innerHTML = slice.join('');
+    diaryBody.classList.remove('turn'); void diaryBody.offsetWidth; diaryBody.classList.add('turn'); // page-turn cue
+    if (count > 1) {
+      diaryPager.innerHTML =
+        `<button type="button" class="kt-diary-arrow prev"${diaryPage === 0 ? ' disabled' : ''} aria-label="Previous page">❮</button>` +
+        `<span class="pg">Page ${diaryPage + 1} of ${count}</span>` +
+        `<button type="button" class="kt-diary-arrow next"${diaryPage >= count - 1 ? ' disabled' : ''} aria-label="Next page">❯</button>`;
+      diaryPager.querySelector('.prev').addEventListener('click', () => { if (diaryPage > 0) { diaryPage -= 1; renderDiary(); } });
+      diaryPager.querySelector('.next').addEventListener('click', () => { diaryPage += 1; renderDiary(); });
+    } else {
+      diaryPager.innerHTML = '';
+    }
+  }
+  renderDiary();
 
   return scene;
 }

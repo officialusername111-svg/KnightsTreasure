@@ -1,4 +1,4 @@
-import { createMatchState, tapTile, resolveMismatch, removeAllLocks } from '../systems/match.js';
+import { createMatchState, tapTile, resolveMismatch } from '../systems/match.js';
 import { chooseSwaps } from '../systems/mechanics.js';
 import { computeStars, computeScore, mistakePenalty } from '../systems/scoring.js';
 import { recordLevelResult } from '../core/state.js';
@@ -11,10 +11,9 @@ import { levelReward, comboCoins as comboCoinsFor, earn } from '../systems/econo
 import { recordWin } from '../systems/dailyDuty.js';
 import { sfx } from '../systems/audio.js';
 import { confirmModal } from './modal.js';
-import { fanfare } from './fanfare.js';
 import { renderHud } from './hud.js';
-import { showTutorial } from './tutorial.js';
-import { burst, popMatch, burstAtEl, staggerIn, comboBanner, countUp, starSlam } from './animations.js';
+import { showInteractiveTutorial, showMechanicTutorial } from './tutorial.js';
+import { burst, popMatch, burstAtEl, staggerIn, comboBanner, countUp, starSlam, castProjectile, castImpact, boardWave, shieldBubble, igniteReveal, slashAcross, boardFlash, irisBloom, streakReveal, edgePulse } from './animations.js';
 
 function shuffle(arr) {
   const a = [...arr];
@@ -48,6 +47,9 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
   const activeBuffs = new Set(); // durational power-ups in effect (D11: max 2, no stacking)
   let powerPenalty = 0;          // score deducted by reveal power-ups (−25 each use)
   let usedPowerup = false;       // gates the "no power-ups" coin bonus (D13)
+  let warHornActive = false;     // War Horn: doubles match score for its window
+  let warHornBonus = 0;          // extra score banked from matches made under War Horn
+  let castSrc = null;            // {x,y} origin (tapped power button) for cast projectiles
 
   const scene = document.createElement('div');
   scene.id = 'kt-game';
@@ -71,10 +73,26 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
   const board = document.createElement('div');
   board.id = 'kt-board';
   board.style.gridTemplateColumns = `repeat(${level.grid.cols}, 1fr)`;
-  // Fill the available width (bigger tiles, no wasted margins), capped so very small
-  // grids don't blow up on wide screens.
-  board.style.width = `min(100%, ${level.grid.cols * 148}px)`;
+  board.style.width = `min(100%, ${level.grid.cols * 148}px)`;   // baseline; fitBoard refines it
   boardWrap.appendChild(board);
+
+  // Size the board to fit BOTH dimensions of the wrap (tiles are square) so it never needs
+  // to scroll — the wrap clips, so no animation can spill scrollbars onto the screen.
+  // A ResizeObserver fires once the wrap is laid out and on every resize/orientation change.
+  function fitBoard() {
+    const cols = level.grid.cols;
+    const rows = Math.ceil(match.tiles.length / cols);
+    const availW = boardWrap.clientWidth - 12;   // minus the 6px padding each side
+    const availH = boardWrap.clientHeight - 12;
+    if (availW <= 0 || availH <= 0) return;
+    const size = Math.min(availW, (availH * cols) / rows, cols * 148);
+    board.style.width = Math.floor(size) + 'px';
+  }
+  const boardRO = new ResizeObserver(() => {
+    if (!boardWrap.isConnected) { boardRO.disconnect(); return; }
+    fitBoard();
+  });
+  boardRO.observe(boardWrap);
 
   const tray = document.createElement('div');
   tray.id = 'kt-tray';
@@ -173,6 +191,7 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
     if (result === 'match' || result === 'win') {
       combo += 1;
       maxCombo = Math.max(maxCombo, combo);
+      if (warHornActive) warHornBonus += 100;   // War Horn doubles this match (base 100 → 200)
       const pair = [tileEls[prevFirst], tileEls[index]];
       popMatch(pair);
       pair.forEach((el) => burstAtEl(scene, el, 10, 'spark'));
@@ -220,7 +239,7 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
       timeRemaining,
       comboBonus: comboBonus(),
       mistakes: match.mistakes,
-    }) - powerPenalty;
+    }) - powerPenalty + warHornBonus;
     // D4: a boss's 3rd star also requires clearing the stage-scaled score threshold.
     if (level.isBoss && level.scoreThreshold && score < level.scoreThreshold) stars = Math.min(stars, 2);
     const firstClear = !gameState.save.completedLevels.includes(level.id);
@@ -261,6 +280,7 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
         `<div class="row"><span>Combo bonus</span><span>+${comboBonus()}</span></div>` +
         `<div class="row" style="color:#a05040;"><span>Mistakes ×50</span><span>−${mistakePenalty({ matches: match.totalPairs, timeRemaining, comboBonus: comboBonus(), mistakes: match.mistakes })}</span></div>` +
         (powerPenalty ? `<div class="row" style="color:#a05040;"><span>Power-ups used</span><span>−${powerPenalty}</span></div>` : '') +
+        (warHornBonus ? `<div class="row" style="color:#8fd07a;"><span>War Horn ×2</span><span>+${warHornBonus}</span></div>` : '') +
       `</div>` +
       `<div class="kt-ov-reward"><img src="${ASSETS.ui}ui_coin.png" alt="">+${coins} coins</div>`;
     showOverlay(
@@ -397,61 +417,130 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
         `<img src="${ASSETS.ui}${it.icon}.png" alt="" onerror="this.style.display='none'">` +
         `<span class="cnt">×${gameState.save.inventory[it.id]}</span></button>`
     ).join('');
-    tray.querySelectorAll('.kt-power').forEach((b) => b.addEventListener('click', () => usePower(b.dataset.id)));
+    tray.querySelectorAll('.kt-power').forEach((b) => b.addEventListener('click', () => usePower(b.dataset.id, b)));
   }
 
-  function flash(els, ms) {
+  function flash(els, ms, dimEls = []) {
     revealActive += 1;             // pause movement (D12) while a reveal is on screen
     els.forEach((el) => el && el.classList.add('flipped'));
-    setTimeout(() => { revealActive = Math.max(0, revealActive - 1); syncBoard(); }, ms);
+    dimEls.forEach((el) => el && el.classList.add('kt-decoy-dim'));   // D12: decoys shown dimmed
+    setTimeout(() => {
+      revealActive = Math.max(0, revealActive - 1);
+      dimEls.forEach((el) => el && el.classList.remove('kt-decoy-dim'));
+      syncBoard();
+    }, ms);
   }
   function realUnmatched() {
     return match.tiles.filter((t) => !t.matched && !t.isDecoy);
   }
-  // Keep the given tiles face-up for the rest of the level (arrow/sword/bomb). View-only:
-  // the model is untouched, so match purity holds; the player still taps to match them.
-  function revealPerm(indices) {
-    const fresh = indices.filter((i) => i != null && match.tiles[i] && !match.tiles[i].matched && !permaReveal.has(i));
-    if (!fresh.length) return false;
-    fresh.forEach((i) => permaReveal.add(i));
-    powerPenalty += 25;          // D-decision: reveal power-ups cost a flat 25 score
-    syncBoard();
-    return true;
+  // Center-out fire reveal (Torch / King's Decree): pause movement, light tiles from the
+  // board centre outward, then revert. `items` = [{ el, decoy }].
+  function igniteRevealTiles(items, holdMs, tone) {
+    revealActive += 1;
+    igniteReveal(scene, board, {
+      tiles: items, holdMs, tone,
+      reveal: (it) => { if (it.el) { it.el.classList.add('flipped'); if (it.decoy) it.el.classList.add('kt-decoy-dim'); } },
+      hide: (it) => { if (it.el) it.el.classList.remove('flipped', 'kt-decoy-dim'); },
+    });
+    setTimeout(() => { revealActive = Math.max(0, revealActive - 1); syncBoard(); }, holdMs + 550);
+  }
+  // Floating "Double Score" banner while War Horn is active.
+  function warHornBanner() {
+    const b = document.createElement('div');
+    b.className = 'kt-warhorn-badge';
+    b.innerHTML = '<span>⚔ Double Score · 10s</span>';
+    scene.appendChild(b);
+    setTimeout(() => b.remove(), 10000);
+  }
+  // Power-up icon art used as the flying projectile.
+  const POWER_ICON = (id) => `${ASSETS.ui}${ITEMS[id].icon}.png`;
+  // Fire a projectile from the tapped button to each target tile; on landing, shake + onImpact.
+  function castToTiles(id, idxs, onImpact, opts = {}) {
+    const src = castSrc;            // snapshot the origin (the button may re-render away)
+    const arc = opts.arc != null ? opts.arc : 70;
+    const spin = opts.spin || 0;
+    const stagger = opts.stagger != null ? opts.stagger : 90;
+    idxs.forEach((idx, k) => {
+      const toEl = tileEls[idx];
+      setTimeout(() => castProjectile(scene, src, toEl, {
+        icon: POWER_ICON(id), arc, spin, stickMs: opts.stickMs || 0,
+        onImpact: () => { castImpact(scene, toEl, { count: 18 }); onImpact(idx); },
+      }), k * stagger);
+    });
   }
 
   const EFFECTS = {
+    // Raven flutters to a real pair → both pulse and glow.
     raven() {
-      const pool = realUnmatched();
       const byIcon = {};
-      pool.forEach((t) => (byIcon[t.icon] = byIcon[t.icon] || []).push(t));
+      realUnmatched().forEach((t) => (byIcon[t.icon] = byIcon[t.icon] || []).push(t));
       const pair = Object.values(byIcon).find((g) => g.length >= 2);
       if (!pair) return false;
-      flash([tileEls[pair[0].index], tileEls[pair[1].index]], 1200);
+      const els = [tileEls[pair[0].index], tileEls[pair[1].index]];
+      // raven flies in flapping (spin wobble), scatters feathers over the pair, they glow
+      castProjectile(scene, castSrc, els[0], { icon: POWER_ICON('raven'), arc: 90, spin: 18,
+        onImpact: () => { els.forEach((e) => { burstAtEl(scene, e, 9, 'feather'); castImpact(scene, e, { count: 6 }); }); flash(els, 1200); } });
       return true;
     },
-    torch() { flash(realUnmatched().concat(match.tiles.filter((t) => t.isDecoy)).map((t) => tileEls[t.index]), 2000); return true; },
+    // Torch ignites: a faint fire-light blooms from the centre and reveals tiles center-out.
+    torch() {
+      const decoys = match.tiles.filter((t) => t.isDecoy && !t.matched);
+      const items = realUnmatched().concat(decoys).map((t) => ({ el: tileEls[t.index], decoy: t.isDecoy }));
+      if (!items.length) return false;
+      igniteRevealTiles(items, 2000);
+      return true;
+    },
+    // Eagle Eye: an iris opens over the board, then real pairs glow gold.
     eagleEye() {
+      irisBloom(scene, board);
       const els = realUnmatched().map((t) => tileEls[t.index]);
       els.forEach((el) => el && el.classList.add('hint'));
       setTimeout(() => els.forEach((el) => el && el.classList.remove('hint')), 5000);
       return true;
     },
-    hourglass() { if (level.timeLimit == null) return false; timeLeft += 15; hud.setTime(timeLeft); return true; },
-    shield() { if (level.timeLimit == null) return false; frozen = true; activeBuffs.add('shield'); setTimeout(() => { frozen = false; activeBuffs.delete('shield'); }, 10000); return true; },
-    // Permanently reveal one unmatched real tile (−25 score).
+    // Hourglass flies up to the timer → +15s with a sparkle.
+    hourglass() {
+      if (level.timeLimit == null) return false;
+      castProjectile(scene, castSrc, hud, { icon: POWER_ICON('hourglass'), arc: 40,
+        onImpact: () => { timeLeft += 15; hud.setTime(timeLeft); burstAtEl(scene, hud, 10, 'spark'); } });
+      return true;
+    },
+    // Shield slams down onto the board → a blue ripple + flash, then a shimmering bubble holds.
+    shield() {
+      if (level.timeLimit == null) return false;
+      frozen = true; activeBuffs.add('shield');
+      castProjectile(scene, castSrc, board, { icon: POWER_ICON('shield'), arc: 10, ms: 320,
+        onImpact: () => {
+          boardFlash(scene, { color: 'rgba(150,210,255,.5)' });
+          boardWave(scene, { x: board.getBoundingClientRect().left - scene.getBoundingClientRect().left + board.clientWidth / 2, y: board.getBoundingClientRect().top - scene.getBoundingClientRect().top + board.clientHeight / 2 }, { color: 'rgba(150,210,255,.7)', rings: 2 });
+          shieldBubble(boardWrap, 10000);
+        } });
+      setTimeout(() => { frozen = false; activeBuffs.delete('shield'); }, 10000);
+      return true;
+    },
+    // Arrow shoots to one real tile → it thuds in (sticks briefly), shakes and reveals (−25 score).
     arrow() {
       const t = realUnmatched().find((x) => !permaReveal.has(x.index));
-      return t ? revealPerm([t.index]) : false;
+      if (!t) return false;
+      powerPenalty += 25;
+      castToTiles('arrow', [t.index], (idx) => { permaReveal.add(idx); syncBoard(); }, { arc: 36, stagger: 0, stickMs: 280 });
+      return true;
     },
-    // Permanently reveal a matching real pair (−25 score).
+    // Sword slashes across a matching real pair → a blade-streak + glint, both reveal (−25 score).
     sword() {
       const byIcon = {};
       realUnmatched().filter((t) => !permaReveal.has(t.index))
         .forEach((t) => (byIcon[t.icon] = byIcon[t.icon] || []).push(t));
       const pair = Object.values(byIcon).find((g) => g.length >= 2);
-      return pair ? revealPerm([pair[0].index, pair[1].index]) : false;
+      if (!pair) return false;
+      powerPenalty += 25;
+      const els = [tileEls[pair[0].index], tileEls[pair[1].index]];
+      slashAcross(scene, els);
+      els.forEach((e, k) => setTimeout(() => { castImpact(scene, e, { count: 14 }); }, 120 + k * 80));
+      setTimeout(() => { permaReveal.add(pair[0].index); permaReveal.add(pair[1].index); syncBoard(); }, 180);
+      return true;
     },
-    // Permanently reveal the 2×2 block (anchored to fit the grid) richest in hidden tiles (−25 score).
+    // Bomb is lobbed to a 2×2 block → explodes, the four tiles shake and reveal (−25 score).
     bomb() {
       const cols = level.grid.cols, rows = Math.ceil(match.tiles.length / cols);
       let best = null, bestCount = 0;
@@ -461,9 +550,20 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
         const cnt = idxs.filter((i) => !match.tiles[i].matched && !permaReveal.has(i)).length;
         if (cnt > bestCount) { bestCount = cnt; best = idxs; }
       }
-      return best ? revealPerm(best) : false;
+      if (!best) return false;
+      powerPenalty += 25;
+      const centre = best[0];
+      castProjectile(scene, castSrc, tileEls[centre], { icon: POWER_ICON('bomb'), arc: 130, spin: 360,
+        onImpact: () => {
+          boardFlash(scene, { color: 'rgba(255,210,120,.7)' });
+          best.forEach((i) => { castImpact(scene, tileEls[i], { kind: 'ember', count: i === centre ? 30 : 14 }); permaReveal.add(i); });
+          boardWrap.classList.remove('kt-board-quake'); void boardWrap.offsetWidth; boardWrap.classList.add('kt-board-quake');
+          boardWrap.addEventListener('animationend', () => boardWrap.classList.remove('kt-board-quake'), { once: true });
+          syncBoard();
+        } });
+      return true;
     },
-    // Briefly reveal the grid row holding the most hidden real tiles (3s).
+    // Spear thrusts across the row richest in hidden real tiles → the row flips for 3s.
     spear() {
       const cols = level.grid.cols, rows = Math.ceil(match.tiles.length / cols);
       let bestRow = -1, bestCount = 0;
@@ -473,39 +573,71 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
         if (cnt > bestCount) { bestCount = cnt; bestRow = r; }
       }
       if (bestRow < 0) return false;
-      const els = [];
-      for (let c = 0; c < cols; c++) { const i = bestRow * cols + c; if (match.tiles[i] && !match.tiles[i].matched) els.push(tileEls[i]); }
-      flash(els, 3000);
+      const els = [], dim = []; let mid = bestRow * cols;
+      for (let c = 0; c < cols; c++) {
+        const i = bestRow * cols + c, t = match.tiles[i];
+        if (t && !t.matched) { els.push(tileEls[i]); mid = i; if (t.isDecoy) dim.push(tileEls[i]); }
+      }
+      // a horizontal streak spears the row left→right; tiles flip in its wake
+      revealActive += 1;
+      const items = els.map((e) => ({ el: e, decoy: dim.includes(e) }));
+      streakReveal(scene, {
+        tiles: items, holdMs: 3000,
+        reveal: (it) => { castImpact(scene, it.el, { count: 8 }); it.el.classList.add('flipped'); if (it.decoy) it.el.classList.add('kt-decoy-dim'); },
+        hide: (it) => { it.el.classList.remove('flipped', 'kt-decoy-dim'); },
+      });
+      setTimeout(() => { revealActive = Math.max(0, revealActive - 1); syncBoard(); }, 3000 + 500);
       return true;
     },
-    // Reveal the whole board for a moment, once. Not on boss levels (effect text).
+    // King's Decree: a golden royal bloom sweeps the whole board center-out.
     kingsDecree() {
       if (level.isBoss) return false;
-      flash(match.tiles.filter((t) => !t.matched).map((t) => tileEls[t.index]), 2500);
+      const items = match.tiles.filter((t) => !t.matched).map((t) => ({ el: tileEls[t.index], decoy: t.isDecoy }));
+      if (!items.length) return false;
+      igniteRevealTiles(items, 2500, 'gold');
       return true;
     },
-    // Strip every chain at once (D9). No-op if nothing is locked.
+    // War Horn: sound-wave rings ripple out + a gold board vignette pulses while ×2 is active.
+    warHorn() {
+      warHornActive = true;
+      activeBuffs.add('warHorn');
+      boardWave(scene, castSrc, { color: 'rgba(245,200,66,.5)', rings: 4 });
+      edgePulse(boardWrap, 10000);
+      warHornBanner();
+      setTimeout(() => { warHornActive = false; activeBuffs.delete('warHorn'); }, 10000);
+      return true;
+    },
+    // Holy Water: a droplet flies to each chained tile → splash, chains shatter (D9).
     holyWater() {
-      if (!match.tiles.some((t) => t.locked)) return false;
-      match = removeAllLocks(match);
-      syncBoard();
+      const locked = match.tiles.filter((t) => t.locked);
+      if (!locked.length) return false;
+      locked.forEach((t, k) => setTimeout(() => castProjectile(scene, castSrc, tileEls[t.index], {
+        icon: POWER_ICON('holyWater'), arc: 60,
+        onImpact: () => { t.locked = false; castImpact(scene, tileEls[t.index], { count: 10 }); burstAtEl(scene, tileEls[t.index], 12, 'shard'); syncBoard(); },
+      }), k * 110));
+      match.locksRemaining = 0;
       return true;
     },
   };
   // Durational power-ups subject to the D11 "max 2 active / no stacking" rule.
   const ACTIVE_BUFFS = new Set(['shield', 'warHorn']);
 
-  function usePower(id) {
+  function usePower(id, srcEl) {
     if (finished) return;
     const fn = EFFECTS[id];
     if (!fn) { return; }                 // not-yet-implemented power-ups stay in the pack
     // D11: at most 2 durational buffs active at once, and never stack the same one.
     if (ACTIVE_BUFFS.has(id) && (activeBuffs.has(id) || activeBuffs.size >= 2)) return;
+    // Capture the projectile origin (the tapped button's centre, scene-relative) before the
+    // tray re-renders and detaches the button.
+    const btn = srcEl || tray.querySelector(`.kt-power[data-id="${id}"]`);
+    const sr = scene.getBoundingClientRect();
+    if (btn) { const br = btn.getBoundingClientRect(); castSrc = { x: br.left - sr.left + br.width / 2, y: br.top - sr.top + br.height / 2 }; }
+    else castSrc = { x: sr.width / 2, y: sr.height - 30 };
     const ok = fn();
     if (!ok) return;                     // timer power-ups are no-ops on untimed levels
     usedPowerup = true;                  // forfeits the "no power-ups" coin bonus (D13)
     sfx('powerup');
-    fanfare(scene, { settings: gameState.save.settings, kind: 'small', originY: 84 });
     gameState.save.inventory[id] -= 1;
     persistSave(adapter, gameState.save);
     bus.emit('powerup:used', { id });
@@ -525,11 +657,37 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
       startMoving();
     }
   };
-  // First-launch tutorial (Plan 3): teach the loop on level 1-1, then start play.
+  // Contextual mechanic tutorials: show each new mechanic/feature once, in sequence,
+  // before play begins. Skipped on daily-challenge boards.
+  function runMechTutorials(done) {
+    if (daily) { done(); return; }
+    const seen = gameState.save.tutorialsSeen || (gameState.save.tutorialsSeen = {});
+    const queue = [];
+    if (level.lockedCount > 0) queue.push('locked');
+    if (level.moveIntervalMs > 0) queue.push('moving');
+    if (level.decoyCount > 0) queue.push('decoy');
+    if (level.hidden) queue.push('hidden');
+    if (ownedPowerups().length) queue.push('powerups');
+    const pending = queue.filter((k) => !seen[k]);
+    const next = () => {
+      if (!pending.length) { done(); return; }
+      const k = pending.shift();
+      seen[k] = true;
+      persistSave(adapter, gameState.save);
+      showMechanicTutorial(scene, k, { onDone: next });
+    };
+    next();
+  }
+  // First launch (level 1-1) gets the live, interactive basics: the board stays tappable while
+  // the Forest Guard reacts to the player's real taps. Other levels gate new-mechanic lessons first.
   if (!daily && level.id === '1-1' && !gameState.save.tutorialSeen) {
-    showTutorial(scene, { onDone: () => { gameState.save.tutorialSeen = true; persistSave(adapter, gameState.save); begin(); } });
-  } else {
     begin();
+    showInteractiveTutorial(scene, {
+      bus, boardWrap,
+      onDone: () => { gameState.save.tutorialSeen = true; persistSave(adapter, gameState.save); },
+    });
+  } else {
+    runMechTutorials(begin);
   }
   return scene;
 }

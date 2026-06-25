@@ -134,10 +134,45 @@
   background:rgba(42,24,0,.8); border:1px solid var(--gold); border-radius:8px; padding:11px 12px; outline:none; }
 .kt-prompt-input::placeholder { color:#8a6a2a; letter-spacing:2px; }
 .kt-prompt-input:focus { box-shadow:0 0 0 2px rgba(245,200,66,.35); }
-/* tutorial stepper dots */
-.kt-tut-dots { display:flex; gap:6px; justify-content:center; margin-bottom:10px; }
-.kt-tut-dots span { width:7px; height:7px; border-radius:50%; background:rgba(201,146,42,.35); transition:background .2s; }
-.kt-tut-dots span.on { background:var(--gold-lt); box-shadow:0 0 6px rgba(245,200,66,.7); }
-.kt-tut .kt-tut-next { width:100%; margin-top:14px; }
+/* ===== NPC tutorials (dock = circular portrait + parchment speech bubble) ===== */
+.kt-tut-live { position:absolute; inset:0; z-index:36; pointer-events:none; }
+.kt-tut-mech { position:absolute; inset:0; z-index:60; }
+.kt-tut-scrim { position:absolute; inset:0; background:rgba(4,2,8,.55); }
 
-@media (prefers-reduced-motion: reduce) { .kt-ember-rise { display:none; } }
+.kt-tut-dock { position:absolute; left:12px; right:12px; bottom:14px; z-index:2; display:flex; align-items:flex-end; gap:11px; }
+.kt-tut-live .kt-tut-dock { pointer-events:none; }
+.kt-tut-dock.in { animation:kt-tut-dock-in .28s ease both; }
+@keyframes kt-tut-dock-in { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
+
+.kt-tut-portrait { flex:none; align-self:flex-end; width:104px; height:140px; border-radius:14px; overflow:hidden;
+  border:2px solid var(--gold); background:linear-gradient(180deg, rgba(60,40,12,.85), rgba(6,4,0,.6));
+  box-shadow:0 5px 16px rgba(0,0,0,.6); }
+.kt-tut-portrait img { width:100%; height:100%; object-fit:cover; object-position:50% 14%; display:block; }
+
+.kt-tut-bubble { flex:1; min-width:0; position:relative; pointer-events:auto;
+  background:linear-gradient(180deg,#efe2c2,#e3d3ad); border-radius:13px; padding:10px 13px;
+  box-shadow:0 6px 18px rgba(0,0,0,.5), inset 0 0 0 1px #c9b27e; }
+.kt-tut-bubble::before { content:''; position:absolute; left:-7px; bottom:16px;
+  border:7px solid transparent; border-right-color:#e3d3ad; }
+.kt-tut-npc { font-variant:small-caps; font-weight:700; font-size:11px; letter-spacing:.5px; color:#7a5a26; }
+.kt-tut-mtitle { font-family:Georgia,serif; font-weight:700; font-size:15px; color:#5a3a16; margin-top:1px; }
+.kt-tut-line { font-family:Georgia,serif; font-style:italic; font-size:13.5px; line-height:1.5; color:#4a3a1e; margin-top:2px; }
+.kt-tut-dismiss { margin-top:9px; font-family:Georgia,serif; font-weight:700; font-size:13.5px; color:#2a1400; cursor:pointer;
+  border:none; border-radius:9px; padding:8px 18px; background:linear-gradient(180deg,#f6d57a,#e0a02a 55%,#b9760f);
+  box-shadow:0 2px 0 #6a3e00, inset 0 1px 0 rgba(255,248,200,.5); }
+.kt-tut-dismiss:active { transform:translateY(1px); box-shadow:0 1px 0 #6a3e00; }
+
+/* replay stepper dots (Settings) */
+.kt-tut-dots { position:absolute; left:0; right:0; bottom:104px; z-index:2; display:flex; gap:6px; justify-content:center; }
+.kt-tut-dots span { width:7px; height:7px; border-radius:50%; background:rgba(245,200,66,.3); }
+.kt-tut-dots span.on { background:var(--gold-lt); box-shadow:0 0 6px rgba(245,200,66,.7); }
+
+/* "tap a tile" coachmark — gentle gold pulse around the board */
+#kt-board-wrap.kt-coach { animation:kt-coach-pulse 1.2s ease-in-out infinite; }
+@keyframes kt-coach-pulse { 0%,100%{box-shadow:inset 0 0 0 3px rgba(245,200,66,.15);} 50%{box-shadow:inset 0 0 0 3px rgba(245,200,66,.7);} }
+
+@media (prefers-reduced-motion: reduce) {
+  .kt-ember-rise { display:none; }
+  .kt-tut-dock.in { animation:none; }
+  #kt-board-wrap.kt-coach { animation:none; }
+}

@@ -1,6 +1,6 @@
 import { ASSETS } from '../data/config.js';
 import { persistSave } from '../core/save.js';
-import { getMail, submitBroadcast, assignRandomBroadcast } from '../services/social.js';
+import { getMail, deleteMail, clearReadMail, submitBroadcast, assignRandomBroadcast } from '../services/social.js';
 import { sectionTop, toast } from './modal.js';
 
 // Inline glyph helper (matches Settings' SVG sizing/stroke). Gold stroke via currentColor.
@@ -14,6 +14,9 @@ const GLYPH = {
   achievement: SVG('<path d="M12 3l2.5 5.2 5.5.8-4 3.9 1 5.5L12 17.7 7 18.4l1-5.5-4-3.9 5.5-.8z"/>'),
   comment: SVG('<path d="M5 6h11a3 3 0 0 1 3 3v0a3 3 0 0 1-3 3H9l-4 3v-3a3 3 0 0 1 0-6z"/><path d="M8 9h7"/>'),
 };
+const TRASH = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg>';
+
+const PER_PAGE = 10;   // mail per page (declutters a long inbox)
 
 // Relative date — "now", "2h", "Yesterday", "3d", or a short date for older mail.
 function relDate(ts) {
@@ -37,14 +40,23 @@ const esc = (s) =>
 export function createMailScene({ gameState, adapter, onBack }) {
   const save = gameState.save;
   const mail = getMail(save); // newest first, live array
+  let page = 0;
 
   const scene = document.createElement('div');
   scene.id = 'kt-mail-scene';
   scene.className = 'kt-sec';
   scene.style.backgroundImage = `url("${ASSETS.bgCover}")`;
 
+  scene.innerHTML =
+    `<div class="kt-home-scrim"></div>` +
+    sectionTop('Ravens & tidings', 'Mail', save.coins || 0) +
+    `<div class="kt-sec-body" id="kt-mail-body"></div>`;
+
+  scene.querySelector('.kt-sec-back').addEventListener('click', onBack);
+  const bodyEl = scene.querySelector('#kt-mail-body');
+
   const rowHtml = (m) =>
-    `<button type="button" class="kt-mail-row${m.read ? '' : ' unread'}" data-id="${esc(m.id)}">` +
+    `<div class="kt-mail-row${m.read ? '' : ' unread'}" data-id="${esc(m.id)}" role="button" tabindex="0">` +
       `<span class="ic">${GLYPH[m.type] || GLYPH.comment}</span>` +
       `<span class="bd">` +
         `<span class="ttl">${esc(m.title)}</span>` +
@@ -54,19 +66,36 @@ export function createMailScene({ gameState, adapter, onBack }) {
         `<span class="dt">${esc(relDate(m.date))}</span>` +
         `<span class="dot" aria-label="unread"></span>` +
       `</span>` +
-    `</button>`;
+      `<button type="button" class="kt-mail-del" data-del="${esc(m.id)}" aria-label="Delete this raven">${TRASH}</button>` +
+    `</div>`;
 
-  const listHtml = mail.length
-    ? `<div class="kt-panel kt-mail-list">${mail.map(rowHtml).join('')}</div>`
-    : `<div class="kt-mail-empty"><span class="q">${GLYPH.comment}</span>` +
-      `<p>No ravens today, knight.</p></div>`;
+  function pagerHtml(p, count) {
+    return `<div class="kt-mail-pager">` +
+      `<button type="button" class="kt-mail-prev"${p === 0 ? ' disabled' : ''}>‹ Prev</button>` +
+      `<span class="pg">Page ${p + 1} / ${count} · ${PER_PAGE} per page</span>` +
+      `<button type="button" class="kt-mail-next"${p >= count - 1 ? ' disabled' : ''}>Next ›</button>` +
+    `</div>`;
+  }
 
-  scene.innerHTML =
-    `<div class="kt-home-scrim"></div>` +
-    sectionTop('Ravens & tidings', 'Mail', save.coins || 0) +
-    `<div class="kt-sec-body">${listHtml}</div>`;
+  function renderBody() {
+    const total = mail.length;
+    if (!total) {
+      bodyEl.innerHTML = `<div class="kt-mail-empty"><span class="q">${GLYPH.comment}</span><p>No ravens today, knight.</p></div>`;
+      return;
+    }
+    const pageCount = Math.max(1, Math.ceil(total / PER_PAGE));
+    page = Math.min(Math.max(0, page), pageCount - 1);
+    const slice = mail.slice(page * PER_PAGE, page * PER_PAGE + PER_PAGE);
+    const readCount = mail.filter((m) => m.read).length;
 
-  scene.querySelector('.kt-sec-back').addEventListener('click', onBack);
+    bodyEl.innerHTML =
+      `<div class="kt-mail-bar"><span class="ct">${total} message${total === 1 ? '' : 's'}</span>` +
+        (readCount ? `<button type="button" class="kt-mail-clear">Clear read (${readCount})</button>` : '') +
+      `</div>` +
+      `<div class="kt-panel kt-mail-list">${slice.map(rowHtml).join('')}</div>` +
+      (pageCount > 1 ? pagerHtml(page, pageCount) : '');
+    wire();
+  }
 
   // ---- broadcast invite detail block ----
   function broadcastBlock(m) {
@@ -105,9 +134,8 @@ export function createMailScene({ gameState, adapter, onBack }) {
       rowEl.classList.remove('open');
       return;
     }
-    // close any other open detail
-    scene.querySelectorAll('.kt-mail-detail').forEach((d) => d.remove());
-    scene.querySelectorAll('.kt-mail-row.open').forEach((r) => r.classList.remove('open'));
+    bodyEl.querySelectorAll('.kt-mail-detail').forEach((d) => d.remove());
+    bodyEl.querySelectorAll('.kt-mail-row.open').forEach((r) => r.classList.remove('open'));
 
     if (!m.read) {
       m.read = true;
@@ -135,7 +163,6 @@ export function createMailScene({ gameState, adapter, onBack }) {
       const res = submitBroadcast(save, input ? input.value : '');
       if (res.ok) {
         persistSave(adapter, save);
-        // re-render the detail as sealed
         const block = detail.querySelector('.kt-bc');
         if (block) block.outerHTML = broadcastBlock(m);
         toast(scene, 'Your message is sealed.');
@@ -157,12 +184,35 @@ export function createMailScene({ gameState, adapter, onBack }) {
     });
   }
 
-  scene.querySelectorAll('.kt-mail-row').forEach((rowEl) => {
-    rowEl.addEventListener('click', () => {
-      const m = mail.find((x) => String(x.id) === rowEl.dataset.id);
-      if (m) openMail(rowEl, m);
+  function wire() {
+    bodyEl.querySelectorAll('.kt-mail-row').forEach((rowEl) => {
+      rowEl.addEventListener('click', () => {
+        const m = mail.find((x) => String(x.id) === rowEl.dataset.id);
+        if (m) openMail(rowEl, m);
+      });
     });
-  });
+    bodyEl.querySelectorAll('.kt-mail-del').forEach((b) => {
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();           // don't open the row we're deleting
+        deleteMail(save, b.dataset.del);
+        persistSave(adapter, save);
+        renderBody();
+      });
+    });
+    const clear = bodyEl.querySelector('.kt-mail-clear');
+    if (clear) clear.addEventListener('click', () => {
+      const n = clearReadMail(save);
+      persistSave(adapter, save);
+      page = 0;
+      renderBody();
+      if (n) toast(scene, `Cleared ${n} read message${n === 1 ? '' : 's'}.`);
+    });
+    const prev = bodyEl.querySelector('.kt-mail-prev');
+    const next = bodyEl.querySelector('.kt-mail-next');
+    if (prev) prev.addEventListener('click', () => { if (page > 0) { page -= 1; renderBody(); } });
+    if (next) next.addEventListener('click', () => { page += 1; renderBody(); });
+  }
 
+  renderBody();
   return scene;
 }

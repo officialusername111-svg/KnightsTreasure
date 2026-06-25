@@ -152,6 +152,7 @@ Schema grows by **extending `defaultSave()` and bumping `SAVE_VERSION`**; `migra
 - **v3** (Plan 3): + `stamina: 5`, `staminaLastUpdated: <ts>`, `staminaMaxSeen: <ts>` (clock-rollback guard), `storyProgress: {}`, `streakDays: 0`, `lastLogin: ''`.
 - **v4** (social/meta): + `rankHistory`, `mail[]`, `broadcast`, `pendingFanfare[]`, `bestScores`, `achievements`, `dailyDuty`, `talesHeard`, `seenIntros`.
 - **v5** (onboarding, 2026-06-25): + `tutorialSeen: false` (first-launch tutorial shown once; replayable from Settings).
+- **v6** (contextual tutorials, 2026-06-25): + `tutorialsSeen: {}` (mechanic/feature key → true; each new-mechanic lesson shown once on first encounter).
 
 ---
 
@@ -169,6 +170,37 @@ Each stage's boards draw icons from a thematically-fitting subset of `ICON_POOL`
 
 ### D21 — Tutorial content (Plan 3)
 First-launch tutorial is a 4-step dialog (`ui/tutorial.js`): welcome → reveal & match → clear the board / stars → power-ups & rest. Shown once on level 1-1 (gated on `tutorialSeen`, after the opening story beat), gates the timer until dismissed, and is replayable from Settings → Replay tutorial. Uses the shared `.kt-info` styling.
+
+### D27 — Scroll fix + matched-tile indicator (2026-06-25, owner feedback)
+- **No more animation scroll:** `#app`/`#kt-game`/`#kt-board-wrap` are now `overflow:hidden`; the board is sized to fit both wrap dimensions via a `ResizeObserver` (`fitBoard` in game.js), so the board never needs to scroll and transforms (flip, shake, quake, fire-spread) can't spill scrollbars. The scaling fire-glow now mounts inside `#kt-board` (clipped).
+- **Matched indicator:** the loud green glow is removed. Matched pairs now **settle quietly** — gently fade (opacity .8) + slight desaturate — with a small **gold ✓ seal** in the corner. (Alternatives offered to owner: gold border, fold-back/shrink, or a linked-ribbon — pending choice.)
+
+### D26 — Power-up cast animations (2026-06-25, owner request)
+Each power-up now plays a custom cast that **originates from its tray button** and resolves on impact (`animations.js`: `castProjectile`, `tileShake`, `boardWave`, `shieldBubble`; styles in `main.css`). The flying projectile is the power-up's own icon art.
+- **Arrow / Sword / Bomb** — projectile flies to the target tile(s); on landing the tile(s) shake + spark, then reveal permanently (Bomb lobs in an arc and bursts over its 2×2).
+- **Spear** — thrusts to the chosen row, which then flips. **Raven** — flutters to a real pair, which pulses.
+- **Torch / Eagle Eye / King's Decree / War Horn** — expanding rings (`boardWave`) sweep from the button (warm for Torch, gold for the rest) alongside the existing reveal/glow/badge.
+- **Hourglass** — flies up to the HUD timer, then +15s with a sparkle. **Shield** — wraps the board in a shimmering bubble for its freeze. **Holy Water** — a droplet flies to each chained tile, shattering it on impact.
+- `prefers-reduced-motion` skips the flight and fires the reveal immediately; a timeout fallback guarantees the reveal even if the animation finish event is throttled. Replaces the old generic power-up fanfare.
+- **Scaled up (2026-06-25):** projectile is a 60px glowing element with a live **comet trail**; impact = a **shockwave ring + white flash + stronger particle burst** (`castImpact`); Bomb adds a board **quake**; rings/shake enlarged.
+- **Distinct per-power casts (2026-06-25):** Arrow **thuds + sticks** then reveals; Sword **slashes** across the pair (`slashAcross`) with a glint; Bomb lobs → **board flash** + quake; Spear is a **horizontal streak** sweeping the row (`streakReveal`); Raven scatters **feathers** (`burst` 'feather'); Eagle Eye opens an **iris** (`irisBloom`); Torch/King's Decree use the center-out bloom (`igniteReveal`, gold tone for Decree); Hourglass flies to the timer; Shield **slams** (flash + blue ripple + bubble); Holy Water shatters chains with **shards**; War Horn rings + a **gold edge vignette** (`edgePulse`) for its 10s.
+
+### D25 — Tutorials made interactive + NPC-led (2026-06-25, owner request)
+- **Interactive basics (level 1-1):** the board stays live and tappable while the **Forest Guard** is docked at the bottom (circular portrait + parchment speech bubble) and reacts to the player's *real* taps via the event bus — no "Next" button. Beats: "tap a tile" (board pulses) → on `tile:flip` "find its twin" → on `tile:mismatch` "not a pair, remember them" (portrait turns *alert*) → on `tile:match` "well matched, clear them all" (Got it). 1-1 is untimed, so play and guidance run concurrently.
+- **Per-stage NPC mechanic lessons:** each new mechanic is introduced over a dimmed board by a stage-fitting guide — **Cave Spirit** (hidden), **Bandit Captain** (decoys), **Castle Guard** (moving), **Dungeon Prisoner** (chains), **Blacksmith** (power-ups). Shown once each (`tutorialsSeen`), queued in sequence, skipped on daily challenges.
+- **Settings → Replay tutorial:** a narrated 4-step Forest Guard walkthrough (no live board needed).
+- Implemented in `ui/tutorial.js` (`showInteractiveTutorial` / `showMechanicTutorial` / `showTutorial`) + a shared NPC dock; supersedes D21's static cards.
+
+### D24 — War Horn + decoy-dim completed (2026-06-25)
+- **War Horn (D10/D11):** now live. Each match made within its 10s window banks **+100 bonus** (doubling the match's base 100 → 200), summed into the final score as a "War Horn ×2" breakdown line. A floating "Double Score · 10s" badge marks the window; counts as a durational buff under the D11 max-2 rule. (Combo/time components are not doubled — only the per-match value.)
+- **Decoy-dim (D12):** Torch, Spear, and King's Decree now reveal decoy tiles **dimmed with a red ring** (`.kt-decoy-dim`) so the player can tell real pairs from decoys during a reveal. Eagle Eye/Raven already target reals only. **All 12 power-ups are now implemented.**
+
+### D23 — UI feedback batch (2026-06-25, owner punch-list)
+- **Matched-pair glow:** matched tiles settle into a persistent green ring/glow (`.kt-tile.matched`) after the gold match-pop, so cleared pairs read at a glance.
+- **Mail:** paginated **10 per page** (`mail.js` PER_PAGE) with Prev/Next; per-row **delete** + a **"Clear read"** bulk button (`social.deleteMail`/`clearReadMail`).
+- **Leaderboard top-3:** ranks 1-3 render as a gold/silver/bronze **podium** (crown on #1); ranks 4+ stay as the list.
+- **Glory placements:** the knight's diary is **paged like a book** (4 entries/page, ❮ ❯ arrows).
+- **Contextual tutorials:** first time a level introduces locked/moving/decoy/hidden tiles — or the player first has a usable power-up — a one-card lesson shows (queued in sequence, gated by `tutorialsSeen`), skipped on daily challenges.
 
 ### D22 — Moving-tiles rendering (implements D8)
 Swaps reorder the two tiles' **DOM nodes** (FLIP slide ~0.6s); the model index stays the tile's identity, so taps still match and `match.js` purity holds. Movement pauses mid-turn, during any reveal, while backgrounded, and once finished (`movementPaused()`); permanent-reveal tiles are pinned. Scheduler (`mechanics.chooseSwaps`) is unit-tested. **Open for on-device feel review:** swap cadence/telegraph timing — unobservable in the headless preview (timer throttling), so tuning wants a real device.

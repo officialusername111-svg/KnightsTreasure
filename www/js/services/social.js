@@ -113,6 +113,25 @@ export function assignRandomBroadcast(save) {
 
 export function getMail(save) { return save.mail || (save.mail = []); }
 
+// Remove a single mail by id (no undo). Mutates the array in place so callers holding the
+// reference (the Mail scene) see the change. Returns true if something was removed.
+export function deleteMail(save, id) {
+  if (!Array.isArray(save.mail)) return false;
+  const idx = save.mail.findIndex((m) => String(m.id) === String(id));
+  if (idx === -1) return false;
+  save.mail.splice(idx, 1);
+  return true;
+}
+// Bulk-remove every already-read mail (de-clutter). In place. Returns the count removed.
+export function clearReadMail(save) {
+  if (!Array.isArray(save.mail)) return 0;
+  let n = 0;
+  for (let i = save.mail.length - 1; i >= 0; i--) {
+    if (save.mail[i].read) { save.mail.splice(i, 1); n += 1; }
+  }
+  return n;
+}
+
 let mid = 0;
 function pushMail(save, m) {
   if (!Array.isArray(save.mail)) save.mail = [];

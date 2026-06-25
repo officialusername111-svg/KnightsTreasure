@@ -52,6 +52,7 @@ export function generateStage(stageId) {
       ...base,
       flipMemoryMs,
       isBoss: false,
+      hidden: !!mech.hiddenFactor,
       decoyCount: mech.decoyCount || 0,
       lockedCount: mech.lockedCount || 0,
       unlockAfterMatches: mech.unlockAfterMatches || 2,

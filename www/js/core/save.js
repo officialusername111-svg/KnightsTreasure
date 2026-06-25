@@ -35,6 +35,8 @@ export function defaultSave() {
     pendingFanfare: [],     // achievement ids awaiting a full-page celebration
     // v5 — onboarding
     tutorialSeen: false,    // first-launch tutorial shown once (replayable from Settings)
+    // v6 — per-mechanic tutorials
+    tutorialsSeen: {},      // mechanic/feature key -> true (shown once on first encounter)
   };
 }
 
@@ -50,7 +52,7 @@ export function migrate(raw) {
   if (!Array.isArray(merged.mail)) merged.mail = [];
   if (!Array.isArray(merged.pendingFanfare)) merged.pendingFanfare = [];
   const obj = (k) => { if (!merged[k] || typeof merged[k] !== 'object') merged[k] = base[k]; };
-  ['stars', 'seenIntros', 'inventory', 'storyProgress', 'talesHeard', 'bestScores', 'achievements', 'rankHistory'].forEach(obj);
+  ['stars', 'seenIntros', 'inventory', 'storyProgress', 'talesHeard', 'bestScores', 'achievements', 'rankHistory', 'tutorialsSeen'].forEach(obj);
   merged.settings = { ...base.settings, ...(merged.settings && typeof merged.settings === 'object' ? merged.settings : {}) };
   merged.dailyDuty = { ...base.dailyDuty, ...(merged.dailyDuty && typeof merged.dailyDuty === 'object' ? merged.dailyDuty : {}) };
   merged.broadcast = { ...base.broadcast, ...(merged.broadcast && typeof merged.broadcast === 'object' ? merged.broadcast : {}) };

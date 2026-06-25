@@ -100,9 +100,29 @@ export function createRanksScene({ gameState, adapter, onBack }) {
     `</div>`;
   }
 
+  // Ranks 1–3 render as a gold/silver/bronze podium; 4+ as the normal list.
+  function podiumCol(r, cls, crown) {
+    if (!r) return '';
+    const cm = r.comment && String(r.comment).trim() ? `<div class="cm">“${esc(r.comment)}”</div>` : '';
+    return `<div class="kt-podium-col ${cls}${r.you ? ' me' : ''}">` +
+      (crown ? `<div class="crown">👑</div>` : '') +
+      `<div class="medal">${r.rank}</div>` +
+      `<div class="nm">${esc(r.name)}${r.you ? ' <em class="you-tag">You</em>' : ''}</div>` +
+      `<div class="ti">${esc(r.title)}</div>` + cm +
+      `<div class="bar"><span class="sc">${fmt(r.score)}</span></div>` +
+    `</div>`;
+  }
+  function podiumHtml(podium) {
+    const byRank = {};
+    podium.forEach((r) => { byRank[r.rank] = r; });
+    return `<div class="kt-podium">${podiumCol(byRank[2], 'p2')}${podiumCol(byRank[1], 'p1', true)}${podiumCol(byRank[3], 'p3')}</div>`;
+  }
+
   function renderBoard(rows) {
     const top = rows.slice(0, TOP_SLICE);
-    let html = top.map((r) => rowHtml(r, r.rank <= 3)).join('');
+    const podium = top.filter((r) => r.rank <= 3).sort((a, b) => a.rank - b.rank);
+    const rest = top.filter((r) => r.rank > 3);
+    let html = (podium.length ? podiumHtml(podium) : '') + rest.map((r) => rowHtml(r, false)).join('');
     // append the player's own row if it fell outside the visible slice
     if (!top.some((r) => r.you)) {
       const mine = rows.find((r) => r.you);

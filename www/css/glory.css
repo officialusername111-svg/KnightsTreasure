@@ -89,3 +89,16 @@
 .kt-diary-line .dt { font-variant:small-caps; font-weight:700; letter-spacing:.5px; color:#6a4a1e; }
 .kt-diary-line b { font-style:normal; color:#7a3b16; font-weight:700; }
 .kt-diary-line.empty { color:#7a6440; }
+/* diary as a turnable book: min-height keeps pages even; arrows turn the page */
+.kt-diary-body { min-height:96px; }
+.kt-diary-body.turn { animation:kt-diary-turn .28s ease; }
+@keyframes kt-diary-turn { 0%{opacity:0; transform:translateX(8px);} 100%{opacity:1; transform:none;} }
+.kt-diary-pager { display:flex; align-items:center; justify-content:space-between; margin-top:10px;
+  padding-top:8px; border-top:1px solid rgba(90,58,22,.3); }
+.kt-diary-pager:empty { display:none; }
+.kt-diary-pager .pg { font-family:Georgia,serif; font-style:italic; font-size:12px; color:#6a4a1e; }
+.kt-diary-arrow { font-family:Georgia,serif; font-size:18px; line-height:1; color:#6a4a1e; background:none;
+  border:none; cursor:pointer; padding:2px 8px; border-radius:6px; }
+.kt-diary-arrow:not(:disabled):active { background:rgba(90,58,22,.14); }
+.kt-diary-arrow:disabled { opacity:.3; cursor:default; }
+@media (prefers-reduced-motion: reduce) { .kt-diary-body.turn { animation:none; } }
