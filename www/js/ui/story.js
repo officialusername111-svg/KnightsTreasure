@@ -1,5 +1,6 @@
 import { ASSETS, STAGE_BG } from '../data/config.js';
 import { STORY } from '../data/story.js';
+import { sfx } from '../systems/audio.js';
 import { sectionTop } from './modal.js';
 
 // Knight's side of an encounter (when a beat doesn't hand-author its `lines`).
@@ -19,54 +20,82 @@ function buildLines(beat) {
   return [{ who: 'npc', text: beat.text }];
 }
 
-// Full-screen parchment dialog. Steps through a beat's conversation (NPC ↔ knight). Skip or
-// advancing past the last line dismisses it + calls onDone. `bg` overrides the backdrop.
+// Cinematic VN-style dialogue. Both speakers stay on screen — the active one is lit and the
+// listener is dimmed; a gold name-plate names the speaker; text types out; Auto-Play advances
+// on its own. Tap to skip the typing / advance; ✕ or the last line dismisses + calls onDone.
+const TYPE_MS = 24;
+const AUTO_DELAY = 1500;
 export function showStoryDialog(parent, { beat, stage, bg, onDone }) {
   const lines = buildLines(beat);
-  let i = 0;
+  const hasKnight = lines.some((l) => l.who === 'knight');
+  let i = 0, typing = false, autoplay = false, typer = null, autoTimer = null;
+
   const ov = document.createElement('div');
-  ov.className = 'kt-story';
-  ov.style.backgroundImage = `url("${bg || STAGE_BG[stage] || ASSETS.bgForest}")`;
+  ov.className = 'kt-story cine';
+  const sceneBg = bg || STAGE_BG[stage] || ASSETS.bgForest;
   ov.innerHTML =
-    `<div class="kt-story-scrim"></div>` +
+    `<div class="kt-story-bg" style="background-image:url('${sceneBg}')"></div>` +
+    `<div class="kt-story-bar top"></div><div class="kt-story-bar bottom"></div>` +
     `<div class="kt-story-lang"><button type="button" class="on" data-l="EN">EN</button><button type="button" data-l="HIL">HIL</button></div>` +
-    `<button type="button" class="kt-story-skip">Skip ▸</button>` +
-    `<div class="kt-story-portrait"><img alt="" onerror="this.style.display='none'"></div>` +
+    `<button type="button" class="kt-story-close" aria-label="Skip">✕</button>` +
+    (hasKnight ? `<div class="kt-story-char left" id="kt-ch-knight"><img alt="" onerror="this.style.display='none'"></div>` : '') +
+    `<div class="kt-story-char right" id="kt-ch-npc"><img alt="" onerror="this.style.display='none'"></div>` +
     `<div class="kt-story-box">` +
       `<div class="kt-story-name"></div>` +
       `<div class="kt-story-text"></div>` +
       `<div class="kt-story-hil" hidden>Hiligaynon translation coming soon.</div>` +
-      `<button type="button" class="kt-story-next" aria-label="Continue">▼</button>` +
-    `</div>`;
+      `<span class="kt-story-caret">▶</span>` +
+    `</div>` +
+    `<button type="button" class="kt-story-autoplay"><span class="box"></span>Auto-Play</button>`;
 
-  const img = ov.querySelector('.kt-story-portrait img');
+  const npcEl = ov.querySelector('#kt-ch-npc');
+  const knightEl = ov.querySelector('#kt-ch-knight');
   const nameEl = ov.querySelector('.kt-story-name');
   const textEl = ov.querySelector('.kt-story-text');
-  const render = () => {
+  const caret = ov.querySelector('.kt-story-caret');
+  npcEl.querySelector('img').src = `${ASSETS.characters}${beat.portrait}.png`;
+  if (knightEl) knightEl.querySelector('img').src = `${ASSETS.characters}${KNIGHT_PORTRAIT[beat.moment] || 'knight/knight_focused'}.png`;
+
+  const close = () => { clearInterval(typer); clearTimeout(autoTimer); ov.remove(); onDone && onDone(); };
+  const maybeAuto = () => { clearTimeout(autoTimer); if (autoplay) autoTimer = setTimeout(advance, AUTO_DELAY); };
+  function typeLine(text) {
+    typing = true; caret.classList.remove('show'); textEl.textContent = '';
+    let j = 0; clearInterval(typer);
+    typer = setInterval(() => {
+      textEl.textContent = text.slice(0, ++j);
+      if (j >= text.length) { clearInterval(typer); typing = false; caret.classList.add('show'); maybeAuto(); }
+    }, TYPE_MS);
+  }
+  function render() {
     const ln = lines[i];
     const knight = ln.who === 'knight';
-    img.src = `${ASSETS.characters}${knight ? (KNIGHT_PORTRAIT[beat.moment] || 'knight/knight_focused') : beat.portrait}.png`;
-    img.style.display = '';
-    ov.classList.toggle('knight-turn', knight);
     nameEl.textContent = knight ? 'Sir Knight' : beat.speaker;
-    textEl.textContent = ln.text;
-  };
-  render();
+    npcEl.classList.toggle('speaking', !knight); npcEl.classList.toggle('dim', knight);
+    if (knightEl) { knightEl.classList.toggle('speaking', knight); knightEl.classList.toggle('dim', !knight); }
+    sfx('flip');
+    typeLine(ln.text);
+  }
+  function advance() {
+    if (typing) { clearInterval(typer); textEl.textContent = lines[i].text; typing = false; caret.classList.add('show'); maybeAuto(); return; }
+    if (i < lines.length - 1) { i += 1; render(); } else close();
+  }
 
-  const close = () => { ov.remove(); onDone && onDone(); };
-  const advance = () => { if (i < lines.length - 1) { i += 1; render(); } else close(); };
-  ov.querySelector('.kt-story-skip').addEventListener('click', close);
-  ov.querySelector('.kt-story-next').addEventListener('click', advance);
-
+  ov.addEventListener('click', advance);
+  const stop = (el, fn) => el && el.addEventListener('click', (e) => { e.stopPropagation(); fn(e); });
+  stop(ov.querySelector('.kt-story-close'), close);
+  stop(ov.querySelector('.kt-story-autoplay'), (e) => {
+    autoplay = !autoplay; e.currentTarget.classList.toggle('on', autoplay);
+    if (autoplay && !typing) maybeAuto(); else clearTimeout(autoTimer);
+  });
   const hil = ov.querySelector('.kt-story-hil');
   ov.querySelectorAll('.kt-story-lang button').forEach((b) =>
-    b.addEventListener('click', () => {
+    stop(b, () => {
       ov.querySelectorAll('.kt-story-lang button').forEach((x) => x.classList.toggle('on', x === b));
       hil.hidden = b.dataset.l !== 'HIL';
-    })
-  );
+    }));
 
   parent.appendChild(ov);
+  render();
   return ov;
 }
 
