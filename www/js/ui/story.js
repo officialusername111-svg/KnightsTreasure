@@ -38,8 +38,8 @@ export function showStoryDialog(parent, { beat, stage, bg, onDone }) {
     `<div class="kt-story-bar top"></div><div class="kt-story-bar bottom"></div>` +
     `<div class="kt-story-lang"><button type="button" class="on" data-l="EN">EN</button><button type="button" data-l="HIL">HIL</button></div>` +
     `<button type="button" class="kt-story-close" aria-label="Skip">✕</button>` +
-    (hasKnight ? `<div class="kt-story-char left" id="kt-ch-knight"><img alt="" onerror="this.style.display='none'"></div>` : '') +
-    `<div class="kt-story-char right" id="kt-ch-npc"><img alt="" onerror="this.style.display='none'"></div>` +
+    (hasKnight ? `<div class="kt-story-char left" id="kt-ch-knight"><div class="crop"><img alt="" onerror="this.style.display='none'"></div></div>` : '') +
+    `<div class="kt-story-char right" id="kt-ch-npc"><div class="crop"><img alt="" onerror="this.style.display='none'"></div></div>` +
     `<div class="kt-story-box">` +
       `<div class="kt-story-name"></div>` +
       `<div class="kt-story-text"></div>` +

@@ -179,15 +179,22 @@
 .kt-story-bg::after { content:''; position:absolute; inset:0; background:radial-gradient(ellipse at 50% 58%, transparent 28%, rgba(4,4,10,.72)); }
 .kt-story-bar { position:absolute; left:0; right:0; height:9%; background:#000; z-index:4; }
 .kt-story-bar.top { top:0; } .kt-story-bar.bottom { bottom:0; }
-.kt-story-char { position:absolute; bottom:9%; height:62%; z-index:2; filter:brightness(.34) saturate(.55);
-  transition:filter .35s ease, transform .35s ease; animation:kt-story-rise .4s ease both; }
-.kt-story-char img { height:100%; width:auto; display:block; }
-.kt-story-char.left { left:0; transform:translateX(-8%); }
-.kt-story-char.right { right:0; transform:translateX(8%); }
-.kt-story-char.dim { filter:brightness(.34) saturate(.55) blur(.4px); }
-.kt-story-char.speaking { filter:drop-shadow(0 0 16px rgba(245,200,66,.85)) brightness(1.06) saturate(1); z-index:3; }
-.kt-story-char.left.speaking { transform:translateX(-3%) scale(1.02); }
-.kt-story-char.right.speaking { transform:translateX(3%) scale(1.02); }
+/* characters are cropped to a BUST (head + upper body), not the full figure — the crop
+   layer clips + bottom-fades; the wrapper holds the speaker glow so it isn't clipped. */
+.kt-story-char { position:absolute; bottom:9%; width:32%; max-width:400px; height:80%; z-index:2;
+  filter:brightness(.4) saturate(.6); transition:filter .35s ease, transform .35s ease;
+  animation:kt-story-rise .4s ease both; }
+.kt-story-char .crop { position:absolute; inset:0; overflow:hidden;
+  -webkit-mask-image:linear-gradient(180deg,#000 74%,transparent); mask-image:linear-gradient(180deg,#000 74%,transparent); }
+.kt-story-char img { width:100%; height:100%; object-fit:cover; object-position:center 8%; display:block; }
+.kt-story-char.left { left:1%; transform:translateX(-4%); }
+.kt-story-char.right { right:1%; transform:translateX(4%); }
+.kt-story-char.dim { filter:brightness(.4) saturate(.6) blur(.4px); }
+.kt-story-char.speaking { filter:brightness(1.06) saturate(1); z-index:3; }
+.kt-story-char.speaking::before { content:''; position:absolute; inset:-8% -12% -2%; z-index:-1;
+  background:radial-gradient(ellipse at 50% 34%, rgba(245,200,66,.4), transparent 62%); }
+.kt-story-char.left.speaking { transform:translateX(0) scale(1.02); }
+.kt-story-char.right.speaking { transform:translateX(0) scale(1.02); }
 @keyframes kt-story-rise { from{opacity:0;transform:translateY(20px);} to{opacity:1;} }
 .kt-story-box { position:absolute; left:50%; bottom:15%; transform:translateX(-50%); width:min(640px,66%); z-index:5;
   background:linear-gradient(180deg,#efe6cf,#ddcfa6); border-radius:14px; padding:20px 24px; min-height:92px;
