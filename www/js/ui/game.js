@@ -278,8 +278,8 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
         `<div class="row"><span>Matches ×100</span><span>+${match.totalPairs * 100}</span></div>` +
         `<div class="row"><span>Time left ×10</span><span>+${timeRemaining * 10}</span></div>` +
         `<div class="row"><span>Combo bonus</span><span>+${comboBonus()}</span></div>` +
-        `<div class="row" style="color:#a05040;"><span>Mistakes ×50</span><span>−${mistakePenalty({ matches: match.totalPairs, timeRemaining, comboBonus: comboBonus(), mistakes: match.mistakes })}</span></div>` +
-        (powerPenalty ? `<div class="row" style="color:#a05040;"><span>Power-ups used</span><span>−${powerPenalty}</span></div>` : '') +
+        `<div class="row" style="color:#c06a4a;"><span>Mistakes ×50</span><span>−${mistakePenalty({ matches: match.totalPairs, timeRemaining, comboBonus: comboBonus(), mistakes: match.mistakes })}</span></div>` +
+        (powerPenalty ? `<div class="row" style="color:#c06a4a;"><span>Power-ups used</span><span>−${powerPenalty}</span></div>` : '') +
         (warHornBonus ? `<div class="row" style="color:#8fd07a;"><span>War Horn ×2</span><span>+${warHornBonus}</span></div>` : '') +
       `</div>` +
       `<div class="kt-ov-reward"><img src="${ASSETS.ui}ui_coin.png" alt="">+${coins} coins</div>`;

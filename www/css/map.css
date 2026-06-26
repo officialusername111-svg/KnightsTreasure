@@ -112,7 +112,7 @@
 .kt-map-node.locked { opacity:.5; }
 .kt-map-node.locked .kt-map-badge img { filter:grayscale(.85) brightness(.8); }
 .kt-map-node.locked .kt-map-num {
-  background:#2a1d08; color:#7a6438;
+  background:#2a1d08; color:#9a8048;
   box-shadow:0 0 0 3px rgba(8,5,1,.7), inset 0 0 0 1px var(--line);
 }
 

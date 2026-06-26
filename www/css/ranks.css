@@ -29,7 +29,7 @@
 .kt-rk-cast .hint { color:#a07832; font-size:10.5px; margin-top:7px; }
 .kt-rk-cast.sealed { background:rgba(8,5,1,.66); border-color:rgba(201,146,42,.3); }
 .kt-rk-cast .ln { color:#cdae72; font-size:13px; font-style:italic; line-height:1.5; margin-top:8px; }
-.kt-rk-cast .lk { color:#8a6a2a; font-size:11px; letter-spacing:.5px; margin-top:7px; }
+.kt-rk-cast .lk { color:#a98a44; font-size:11px; letter-spacing:.5px; margin-top:7px; }
 
 /* board — rows spaced apart as individual bands */
 .kt-ranks-board { display:flex; flex-direction:column; gap:7px; background:none; box-shadow:none; padding:2px 0; }
@@ -91,9 +91,9 @@
 
 /* separator before an appended out-of-slice "you" row */
 .kt-rk-gap { display:flex; align-items:center; justify-content:center; padding:4px 0;
-  color:#6b4c1a; font-size:14px; letter-spacing:3px; border-bottom:1px solid rgba(201,146,42,.14); }
+  color:#a07832; font-size:14px; letter-spacing:3px; border-bottom:1px solid rgba(201,146,42,.14); }
 
-.kt-rk-empty { padding:22px 12px; text-align:center; color:#8a6a2a; font-size:13px; }
+.kt-rk-empty { padding:22px 12px; text-align:center; color:#a98a44; font-size:13px; }
 
 /* skeleton rows (same metrics as real rows → no layout shift) */
 .kt-rk-row.sk { pointer-events:none; }

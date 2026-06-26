@@ -16,13 +16,13 @@ html,body { width:100%; height:100%; background:var(--dark); color:var(--parch);
 .kt-badge img { width:100%; height:100%; object-fit:contain; }
 .kt-name { line-height:1.15; }
 .kt-name b { display:block; color:var(--gold-lt); font-size:12px; font-weight:400; letter-spacing:.5px; }
-.kt-name span { color:#a07832; font-size:8px; letter-spacing:.5px; text-transform:uppercase; }
+.kt-name span { color:#caa45a; font-size:9px; letter-spacing:.5px; text-transform:uppercase; }
 .kt-coins { margin-left:auto; display:flex; align-items:center; gap:5px; background:#120d02;
   border:1px solid var(--gold); border-radius:12px; padding:3px 10px; color:var(--gold-lt); font-size:13px; }
 .kt-coins img { width:16px; height:16px; object-fit:contain; }
 .kt-stats { display:flex; gap:6px; }
 .kt-stat { flex:1; text-align:center; background:#120d02; border:1px solid var(--line); border-radius:6px; padding:3px 0; }
-.kt-stat .lbl { color:#a07832; font-size:8px; letter-spacing:1px; text-transform:uppercase; }
+.kt-stat .lbl { color:#caa45a; font-size:9px; letter-spacing:1px; text-transform:uppercase; }
 .kt-stat .val { color:var(--gold-lt); font-size:16px; font-weight:700; line-height:1.1; }
 #kt-timer-val.danger { color:#e05030; }
 
@@ -64,7 +64,7 @@ html,body { width:100%; height:100%; background:var(--dark); color:var(--parch);
 .kt-power:active { transform:scale(.94); }
 .kt-power img { width:26px; height:26px; object-fit:contain; }
 .kt-power .cnt { font-size:9px; color:#a07832; }
-.kt-tray-hint { color:#6b4c1a; font-size:10px; align-self:center; letter-spacing:1px; }
+.kt-tray-hint { color:#a07832; font-size:10px; align-self:center; letter-spacing:1px; }
 /* Eagle Eye highlight on real pairs */
 .kt-tile.hint { z-index:3; }
 .kt-tile.hint .kt-tile-inner { box-shadow:0 0 0 2px var(--gold-lt), 0 0 16px 4px rgba(245,200,66,.55); border-radius:8px; }

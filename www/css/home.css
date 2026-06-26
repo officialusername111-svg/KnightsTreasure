@@ -81,7 +81,7 @@
 .kt-rail-btn:active { background:rgba(245,200,66,.12); }
 .kt-rail-btn .ic { width:46px; height:46px; object-fit:contain; }
 .kt-rail-btn .lbl { font-size:12px; letter-spacing:.3px; text-shadow:0 1px 3px #000; }
-.kt-rail-btn .soon { font-size:7px; letter-spacing:1px; text-transform:uppercase; color:#caa45a; opacity:.85; }
+.kt-rail-btn .soon { font-size:9px; letter-spacing:1px; text-transform:uppercase; color:#caa45a; opacity:.85; }
 
 /* ambient embers */
 .kt-home-embers { position:absolute; inset:0; z-index:1; pointer-events:none; overflow:hidden; }

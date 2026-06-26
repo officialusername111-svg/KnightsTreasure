@@ -65,7 +65,7 @@
 .kt-glory-trophy.locked .ic .gl,
 .kt-glory-trophy.locked .ic .bd { opacity:.34; filter:grayscale(.7); }
 .kt-glory-trophy.locked .nm { color:#9a8048; text-shadow:none; }
-.kt-glory-trophy.locked .ds { color:#7a6438; }
+.kt-glory-trophy.locked .ds { color:#9a8048; }
 
 /* progress bar for unearned count-style trophies */
 .kt-glory-trophy-prog { display:flex; align-items:center; gap:7px; width:100%; margin-top:3px; }
