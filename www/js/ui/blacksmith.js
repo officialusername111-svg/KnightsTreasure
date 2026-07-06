@@ -5,6 +5,7 @@ import { spend } from '../systems/economy.js';
 import { persistSave } from '../core/save.js';
 import { sfx } from '../systems/audio.js';
 import { sectionTop, toast, showInfo } from './modal.js';
+import { fitHeroCard } from './portraitFit.js';
 import { fanfare } from './fanfare.js';
 
 const BG_BLACKSMITH = 'assets/images/backgrounds/bg_blacksmith.png';
@@ -60,6 +61,8 @@ export function createBlacksmithScene({ gameState, adapter, onBack }) {
       `</div>` +
       `<div class="kt-panel">${rows}</div>` +
     `</div>`;
+
+  fitHeroCard(scene);
 
   const refreshUI = () => {
     scene.querySelector('.kt-sec-coin-val').textContent = save.coins || 0;

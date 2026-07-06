@@ -2,6 +2,7 @@ import { ASSETS, STAGE_BG } from '../data/config.js';
 import { STORY } from '../data/story.js';
 import { sfx } from '../systems/audio.js';
 import { sectionTop } from './modal.js';
+import { fitPortrait } from './portraitFit.js';
 
 // Knight's side of an encounter (when a beat doesn't hand-author its `lines`).
 const KNIGHT_PORTRAIT = { Opening: 'knight/knight_ready', Midpoint: 'knight/knight_thinking', Boss: 'knight/knight_confident' };
@@ -56,7 +57,11 @@ export function showStoryDialog(parent, { beat, stage, bg, onDone }) {
   npcEl.querySelector('img').src = `${ASSETS.characters}${beat.portrait}.png`;
   if (knightEl) knightEl.querySelector('img').src = `${ASSETS.characters}${KNIGHT_PORTRAIT[beat.moment] || 'knight/knight_focused'}.png`;
 
-  const close = () => { clearInterval(typer); clearTimeout(autoTimer); ov.remove(); onDone && onDone(); };
+  const fitChars = () => {
+    fitPortrait(npcEl.querySelector('img'), npcEl.querySelector('.crop'), 'bust');
+    if (knightEl) fitPortrait(knightEl.querySelector('img'), knightEl.querySelector('.crop'), 'bust');
+  };
+  const close = () => { clearInterval(typer); clearTimeout(autoTimer); window.removeEventListener('resize', fitChars); ov.remove(); onDone && onDone(); };
   const maybeAuto = () => { clearTimeout(autoTimer); if (autoplay) autoTimer = setTimeout(advance, AUTO_DELAY); };
   function typeLine(text) {
     typing = true; caret.classList.remove('show'); textEl.textContent = '';
@@ -95,6 +100,8 @@ export function showStoryDialog(parent, { beat, stage, bg, onDone }) {
     }));
 
   parent.appendChild(ov);
+  fitChars();
+  window.addEventListener('resize', fitChars);
   render();
   return ov;
 }

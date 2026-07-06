@@ -3,6 +3,7 @@ import { NPC } from '../data/npc.js';
 import { persistSave } from '../core/save.js';
 import { earn } from '../systems/economy.js';
 import { showInfo, sectionTop, npcHero, toast } from './modal.js';
+import { fitHeroCard } from './portraitFit.js';
 
 // Bard's Corner (GDD §Bard's Corner). One song per stage, unlocked as stages are reached;
 // optional lore tales reward +5 coins on first listen.
@@ -58,6 +59,7 @@ export function createBardScene({ gameState, adapter, onBack }) {
       `<div class="kt-panel">${tales}</div>` +
     `</div>`;
 
+  fitHeroCard(scene);
   scene.querySelector('.kt-sec-back').addEventListener('click', onBack);
   scene.querySelectorAll('.kt-song:not(.locked)').forEach((b) =>
     b.addEventListener('click', () =>

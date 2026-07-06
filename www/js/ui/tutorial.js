@@ -1,4 +1,5 @@
 import { ASSETS } from '../data/config.js';
+import { fitPortrait } from './portraitFit.js';
 
 // NPC-led tutorials (Plan 3). Three flavours:
 //  - showInteractiveTutorial: live, event-driven basics on level 1-1 (the Forest Guard
@@ -41,6 +42,12 @@ function buildDock({ name, portrait, title, text, dismiss }) {
   );
 }
 
+// Frame the dock's portrait by figure (portraitFit) once the dock HTML is in the DOM.
+function fitDock(root) {
+  const p = root.querySelector('.kt-tut-portrait');
+  if (p) fitPortrait(p.querySelector('img'), p, 'bust');
+}
+
 // ---- live, interactive basics (level 1-1) ----
 const STEPS = [
   { mood: 'friendly', text: 'Welcome, knight. Tap any tile to reveal what it hides.' },          // until tile:flip
@@ -60,6 +67,7 @@ export function showInteractiveTutorial(parent, { bus, boardWrap, onDone } = {})
 
   const setDock = (mood, text, final) => {
     ov.innerHTML = buildDock({ name: GUIDE, portrait: GUIDE_PORTRAIT[mood], text, dismiss: final ? 'Got it' : '' });
+    fitDock(ov);
     const dock = ov.querySelector('.kt-tut-dock');
     if (dock) { dock.classList.remove('in'); void dock.offsetWidth; dock.classList.add('in'); }
     if (final) ov.querySelector('.kt-tut-dismiss').addEventListener('click', finish);
@@ -97,6 +105,7 @@ export function showMechanicTutorial(parent, key, { onDone } = {}) {
   o.className = 'kt-tut-mech';
   o.innerHTML = `<div class="kt-tut-scrim"></div>` +
     buildDock({ name: d.npc, portrait: d.portrait, title: d.title, text: d.body, dismiss: 'Got it' });
+  fitDock(o);
   o.querySelector('.kt-tut-dismiss').addEventListener('click', () => { o.remove(); onDone && onDone(); });
   parent.appendChild(o);
   return o;
@@ -120,6 +129,7 @@ export function showTutorial(parent, { onDone } = {}) {
     o.innerHTML = `<div class="kt-tut-scrim"></div>` +
       `<div class="kt-tut-dots">${REPLAY.map((_, k) => `<span class="${k === i ? 'on' : ''}"></span>`).join('')}</div>` +
       buildDock({ name: GUIDE, portrait: GUIDE_PORTRAIT[s.mood], text: s.text, dismiss: last ? 'Begin' : 'Next' });
+    fitDock(o);
     o.querySelector('.kt-tut-dismiss').addEventListener('click', () => {
       if (last) { o.remove(); onDone && onDone(); } else { i += 1; render(); }
     });

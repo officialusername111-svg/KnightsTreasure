@@ -4,6 +4,7 @@ import { persistSave } from '../core/save.js';
 import { roll, rollsLeft, FREE_ROLLS } from '../systems/gambler.js';
 import { sfx } from '../systems/audio.js';
 import { showInfo, sectionTop, npcHero, toast } from './modal.js';
+import { fitHeroCard } from './portraitFit.js';
 import { fanfare } from './fanfare.js';
 
 const TAUNT = { win: 'gambler/gambler_grinning', lose: 'gambler/gambler_laughing' };
@@ -50,6 +51,7 @@ export function createGamblerScene({ gameState, adapter, onBack }) {
       `</button>` +
     `</div>`;
 
+  fitHeroCard(scene);
   scene.querySelector('.kt-sec-back').addEventListener('click', onBack);
 
   const dieA = scene.querySelector('#die-a');

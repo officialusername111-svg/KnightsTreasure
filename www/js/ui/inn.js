@@ -6,6 +6,7 @@ import { buyDrink } from '../systems/tavern.js';
 import * as stamina from '../systems/stamina.js';
 import { sfx } from '../systems/audio.js';
 import { showInfo, sectionTop, npcHero, toast } from './modal.js';
+import { fitHeroCard } from './portraitFit.js';
 import { fanfare } from './fanfare.js';
 
 // Tavern sub-areas (GDD §Tavern Sub-Areas). Daily Duty lives on the home nav as Quests.
@@ -58,6 +59,8 @@ export function createInnScene({ gameState, adapter, onBack, onHall }) {
       `<div class="kt-sub-head">Tavern halls</div>` +
       `<div class="kt-sub-row">${halls}</div>` +
     `</div>`;
+
+  fitHeroCard(scene);
 
   const refreshUI = () => {
     const cur = stamina.current(save);
