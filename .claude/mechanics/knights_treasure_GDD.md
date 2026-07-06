@@ -146,8 +146,8 @@ The amount of time a non-matching pair stays visible before flipping back. This 
 
 ## ⏱️ Timer System
 
-- Early levels have no timer — relaxed, puzzle-focused
-- Stage 2 onwards introduces a **countdown timer**
+- The Warm Up block (levels 1–5 of every stage) has no timer — relaxed, puzzle-focused
+- From the Building block (level 6 of every stage) onwards, a **countdown timer** applies — see "Difficulty Parameters Per Block"
 - If timer reaches zero before all pairs matched → level failed
 - Player can retry the level immediately
 - Timer is displayed prominently in the HUD during gameplay
