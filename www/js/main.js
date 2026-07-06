@@ -1,6 +1,6 @@
 import { createStorageAdapter } from './platform/storageAdapter.js';
 import { loadSave, persistSave } from './core/save.js';
-import { createGameState, recordLevelResult, nextPosition } from './core/state.js';
+import { createGameState, recordLevelResult, nextPosition, mapPlayLevel } from './core/state.js';
 import { createEventBus } from './core/eventBus.js';
 import { createSceneManager } from './ui/sceneManager.js';
 import { createGameScene } from './ui/game.js';
@@ -70,7 +70,8 @@ async function boot() {
     el.classList.add('kt-scene-overlay');
     app.appendChild(el);
   }
-  const openSettings = () => openOverlay((close) => createSettingsScene({ gameState, adapter, onBack: close }));
+  const openSettings = (inLevel = false) =>
+    openOverlay((close) => createSettingsScene({ gameState, adapter, onBack: close, inLevel }));
   const openStoryLog = () => openOverlay((close) => createStoryLogScene({ gameState, onBack: close }));
 
   // ---- home + sections ----
@@ -121,7 +122,7 @@ async function boot() {
       onRetry: () => mountDailyGame(taskId, level, mod),
       onHome: () => showHome(),
       onStory: () => openStoryLog(),
-      onSettings: () => openSettings(),
+      onSettings: () => openSettings(true),
     }));
   }
   function openMail() { scenes.mount(createMailScene({ gameState, adapter, onBack: () => showHome() })); }
@@ -132,7 +133,7 @@ async function boot() {
   }
   function openMap() {
     scenes.mount(createLevelMapScene({
-      gameState, onBack: () => showHome(), onPlayStage: (n) => showGameAt(n, 1),
+      gameState, onBack: () => showHome(), onPlayStage: (n) => showGameAt(n, mapPlayLevel(save(), n)),
     }));
   }
 
@@ -191,7 +192,7 @@ async function boot() {
       onRetry: () => mountGame(stage, level),
       onHome: () => showHome(),
       onStory: () => openStoryLog(),
-      onSettings: () => openSettings(),
+      onSettings: () => openSettings(true),
     }));
   }
 

@@ -1,4 +1,5 @@
 import { persistSave } from '../core/save.js';
+import { APP_VERSION } from '../data/config.js';
 import { configure as audioConfigure } from '../systems/audio.js';
 import { showInfo, sectionTop, promptModal, toast } from './modal.js';
 import { redeemCode } from '../systems/codes.js';
@@ -18,7 +19,7 @@ const ICON = {
   key: SVG('<circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 19 4M16 7l3 3M14 9l2 2"/>'),
 };
 
-export function createSettingsScene({ gameState, adapter, onBack, onReplayTutorial }) {
+export function createSettingsScene({ gameState, adapter, onBack, onReplayTutorial, inLevel = false }) {
   const save = gameState.save;
   const st = save.settings || (save.settings = { sound: true, music: true, language: 'EN', fanfare: true });
   if (st.fanfare === undefined) st.fanfare = true;
@@ -54,8 +55,8 @@ export function createSettingsScene({ gameState, adapter, onBack, onReplayTutori
         `<button type="button" class="kt-set-link" id="set-credits"><span class="ic">${ICON.credits}</span>Credits<span class="ch">›</span></button>` +
         `<button type="button" class="kt-set-link" id="set-privacy"><span class="ic">${ICON.privacy}</span>Privacy policy<span class="ch">›</span></button>` +
       `</div>` +
-      `<div class="kt-set-note">The level timer keeps running while Settings is open.</div>` +
-      `<div class="kt-set-ver">Knight's Treasure · v0.1.0</div>` +
+      (inLevel ? `<div class="kt-set-note">The level timer keeps running while Settings is open.</div>` : '') +
+      `<div class="kt-set-ver">Knight's Treasure · v${APP_VERSION}</div>` +
     `</div>`;
 
   scene.querySelector('.kt-sec-back').addEventListener('click', onBack);

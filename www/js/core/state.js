@@ -24,6 +24,12 @@ export function nextPosition(stage, level) {
   return null;
 }
 
+// Level the Quest Map launches for a tapped stage: the current stage resumes at
+// the continue pointer; a completed stage replays from level 1 (GDD map rule).
+export function mapPlayLevel(save, stage) {
+  return stage === save.currentStage ? save.currentLevel : 1;
+}
+
 export function recordLevelResult(gs, { stars }) {
   const cur = gs.current;
   const id = cur.id;

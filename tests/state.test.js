@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createGameState, recordLevelResult } from '../www/js/core/state.js';
+import { createGameState, recordLevelResult, mapPlayLevel } from '../www/js/core/state.js';
 import { defaultSave } from '../www/js/core/save.js';
 
 describe('GameState', () => {
@@ -43,5 +43,12 @@ describe('GameState', () => {
     gs = recordLevelResult(gs, { stars: 2 });
     expect(gs.save.currentStage).toBe(10);
     expect(gs.save.currentLevel).toBe(25);
+  });
+
+  // Regression (T1): map "Continue" must resume the pointer, not restart at L1.
+  it('map play resumes the pointer on the current stage, replays L1 on others', () => {
+    const save = { ...defaultSave(), currentStage: 2, currentLevel: 14 };
+    expect(mapPlayLevel(save, 2)).toBe(14); // current stage → continue pointer
+    expect(mapPlayLevel(save, 1)).toBe(1);  // completed stage → replay from L1
   });
 });

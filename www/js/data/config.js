@@ -1,6 +1,10 @@
 export const SAVE_KEY = 'kt_save';
 export const SAVE_VERSION = 6;
 
+// App version shown in Settings. Must match package.json "version" — a test
+// (tests/config.test.js) enforces the sync; bump both together.
+export const APP_VERSION = '3.0.0';
+
 export const STAGE1 = { id: 1, name: 'The Forest Path', theme: 'forest' };
 
 // Tile-icon asset base-names (framed icon PNGs in assets/images/tiles/). The match

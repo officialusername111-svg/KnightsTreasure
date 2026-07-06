@@ -32,7 +32,7 @@ function ordinal(n) {
   return `${v}${s[(m - 20) % 10] || s[m] || s[0]}`;
 }
 
-const SCOPE_LABEL = { daily: 'Daily', weekly: 'Weekly', allTime: 'All-Time' };
+const SCOPE_LABEL = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', allTime: 'All-Time' };
 
 export function createGloryScene({ gameState, onBack }) {
   const save = gameState.save;
