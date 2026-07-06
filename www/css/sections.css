@@ -184,15 +184,22 @@
 .kt-story-char { position:absolute; bottom:9%; width:32%; max-width:400px; height:80%; z-index:2;
   filter:brightness(.4) saturate(.6); transition:filter .35s ease, transform .35s ease;
   animation:kt-story-rise .4s ease both; }
+/* every cut edge fades (bottom + both sides) so figures dissolve into the scene
+   instead of ending at a rectangle; the two mask layers intersect. */
 .kt-story-char .crop { position:absolute; inset:0; overflow:hidden;
-  -webkit-mask-image:linear-gradient(180deg,#000 74%,transparent); mask-image:linear-gradient(180deg,#000 74%,transparent); }
+  -webkit-mask-image:linear-gradient(180deg,#000 62%,transparent 96%), linear-gradient(90deg,transparent 0,#000 14%,#000 86%,transparent 100%);
+  mask-image:linear-gradient(180deg,#000 62%,transparent 96%), linear-gradient(90deg,transparent 0,#000 14%,#000 86%,transparent 100%);
+  -webkit-mask-composite:source-in; mask-composite:intersect; }
 .kt-story-char img { width:100%; height:100%; object-fit:cover; object-position:center 8%; display:block; }
 .kt-story-char.left { left:1%; transform:translateX(-4%); }
 .kt-story-char.right { right:1%; transform:translateX(4%); }
-.kt-story-char.dim { filter:brightness(.4) saturate(.6) blur(.4px); }
+/* no blur here: blurring the hard crop edges smeared them into a visible haze */
+.kt-story-char.dim { filter:brightness(.45) saturate(.65); }
 .kt-story-char.speaking { filter:brightness(1.06) saturate(1); z-index:3; }
-.kt-story-char.speaking::before { content:''; position:absolute; inset:-8% -12% -2%; z-index:-1;
-  background:radial-gradient(ellipse at 50% 34%, rgba(245,200,66,.4), transparent 62%); }
+/* closest-side: the glow reaches full transparency inside its own bounds, so its
+   box never clips it into a visible rectangle behind the speaker. */
+.kt-story-char.speaking::before { content:''; position:absolute; inset:-4% -8% -2%; z-index:-1;
+  background:radial-gradient(ellipse closest-side at 50% 30%, rgba(245,200,66,.34), transparent 100%); }
 .kt-story-char.left.speaking { transform:translateX(0) scale(1.02); }
 .kt-story-char.right.speaking { transform:translateX(0) scale(1.02); }
 @keyframes kt-story-rise { from{opacity:0;transform:translateY(20px);} to{opacity:1;} }
