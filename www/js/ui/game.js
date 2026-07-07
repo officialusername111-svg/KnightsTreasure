@@ -13,7 +13,7 @@ import { sfx } from '../systems/audio.js';
 import { confirmModal } from './modal.js';
 import { renderHud } from './hud.js';
 import { showInteractiveTutorial, showMechanicTutorial } from './tutorial.js';
-import { burst, popMatch, burstAtEl, staggerIn, comboBanner, countUp, starSlam, castProjectile, castImpact, boardWave, shieldBubble, igniteReveal, slashAcross, boardFlash, irisBloom, streakReveal, edgePulse } from './animations.js';
+import { burst, popMatch, burstAtEl, staggerIn, comboBanner, countUp, starSlam, castProjectile, castImpact, boardWave, shieldBubble, igniteReveal, slashAcross, boardFlash, irisBloom, streakReveal, edgePulse, sceneShake, impactFreeze, radialStreaks, scorchGlow, tileKick } from './animations.js';
 
 function shuffle(arr) {
   const a = [...arr];
@@ -50,6 +50,7 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
   let warHornActive = false;     // War Horn: doubles match score for its window
   let warHornBonus = 0;          // extra score banked from matches made under War Horn
   let castSrc = null;            // {x,y} origin (tapped power button) for cast projectiles
+  let aiming = null;             // { id, targets:Set } while a targeted power-up awaits its tile
 
   const scene = document.createElement('div');
   scene.id = 'kt-game';
@@ -102,7 +103,7 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
   footer.innerHTML = `<button type="button" class="kt-foot-home">Home</button><button type="button" class="kt-foot-story">Story</button><button type="button" class="kt-foot-settings">Settings</button>`;
   // Leaving mid-level forfeits it (stamina already spent) — confirm first.
   // Abandoning ends the game cleanly: stop the timer + any pending flip, then leave.
-  const endGame = () => { finished = true; stopTimer(); stopMoving(); if (mismatchTimer) clearTimeout(mismatchTimer); document.removeEventListener('visibilitychange', onVisibility); };
+  const endGame = () => { finished = true; cancelAim(); stopTimer(); stopMoving(); if (mismatchTimer) clearTimeout(mismatchTimer); document.removeEventListener('visibilitychange', onVisibility); };
   const leaveGuard = (action) => {
     if (finished) { action(); return; }
     confirmModal(scene, {
@@ -176,6 +177,8 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
 
   function onTap(index) {
     if (finished) return;
+    // Aim mode captures the tap: it targets the armed power-up instead of flipping.
+    if (aiming) { aimTap(index); return; }
     // A mismatched pair is currently shown: any new tap resolves it at once so the
     // tap is responsive instead of waiting out the flip-memory timer.
     if (match.locked) resolvePending();
@@ -540,27 +543,35 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
       setTimeout(() => { permaReveal.add(pair[0].index); permaReveal.add(pair[1].index); syncBoard(); }, 180);
       return true;
     },
-    // Bomb is lobbed to a 2×2 block → explodes, the four tiles shake and reveal (−25 score).
-    bomb() {
-      const cols = level.grid.cols, rows = Math.ceil(match.tiles.length / cols);
-      let best = null, bestCount = 0;
-      for (let r = 0; r < rows - 1; r++) for (let c = 0; c < cols - 1; c++) {
-        const idxs = [r * cols + c, r * cols + c + 1, (r + 1) * cols + c, (r + 1) * cols + c + 1]
-          .filter((i) => i < match.tiles.length);
-        const cnt = idxs.filter((i) => !match.tiles[i].matched && !permaReveal.has(i)).length;
-        if (cnt > bestCount) { bestCount = cnt; best = idxs; }
-      }
-      if (!best) return false;
+    // Bomb (player-aimed): lobbed to the tapped 2×2 zone → hit-stop, screen shake,
+    // shockwave + fire streaks, tiles kick outward and reveal with scorch (−25 score).
+    bomb(targetIdx) {
+      const zone = bombZone(targetIdx);
+      if (!zone.length) return false;
       powerPenalty += 25;
-      const centre = best[0];
-      castProjectile(scene, castSrc, tileEls[centre], { icon: POWER_ICON('bomb'), arc: 130, spin: 360,
-        onImpact: () => {
-          boardFlash(scene, { color: 'rgba(255,210,120,.7)' });
-          best.forEach((i) => { castImpact(scene, tileEls[i], { kind: 'ember', count: i === centre ? 30 : 14 }); permaReveal.add(i); });
-          boardWrap.classList.remove('kt-board-quake'); void boardWrap.offsetWidth; boardWrap.classList.add('kt-board-quake');
-          boardWrap.addEventListener('animationend', () => boardWrap.classList.remove('kt-board-quake'), { once: true });
-          syncBoard();
-        } });
+      const centre = targetIdx;
+      castProjectile(scene, castSrc, tileEls[centre], { icon: POWER_ICON('bomb'), arc: 150, spin: 720, ms: 520,
+        onImpact: () => impactFreeze(scene, { holdMs: 90, onRelease: () => {
+          const sr = scene.getBoundingClientRect();
+          const cr = tileEls[centre].getBoundingClientRect();
+          const at = { x: cr.left - sr.left + cr.width / 2, y: cr.top - sr.top + cr.height / 2 };
+          boardFlash(scene, { color: 'rgba(255,210,120,.85)' });
+          sceneShake(scene, { amp: 9, ms: 520 });
+          boardWave(scene, at, { color: 'rgba(255,170,80,.8)', rings: 2 });
+          radialStreaks(scene, at, { count: 10 });
+          zone.forEach((i, k) => setTimeout(() => {
+            const el = tileEls[i];
+            const r = el.getBoundingClientRect();
+            const dx = (r.left - cr.left) || (Math.random() - 0.5);
+            const dy = (r.top - cr.top) || (Math.random() - 0.5);
+            const len = Math.hypot(dx, dy) || 1;
+            tileKick(el, dx / len, dy / len, { dist: i === centre ? 6 : 12 });
+            castImpact(scene, el, { kind: 'ember', count: i === centre ? 26 : 14 });
+            permaReveal.add(i);
+            syncBoard();
+          }, k * 70));
+          scorchGlow(zone.map((i) => tileEls[i]), 1100);
+        } }) });
       return true;
     },
     // Spear thrusts across the row richest in hidden real tiles → the row flips for 3s.
@@ -622,10 +633,78 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
   // Durational power-ups subject to the D11 "max 2 active / no stacking" rule.
   const ACTIVE_BUFFS = new Set(['shield', 'warHorn']);
 
+  // The 2×2 blast zone anchored at the tapped tile, clamped inside the grid (deduped so
+  // 1-row / 1-col boards still work).
+  function bombZone(idx) {
+    const cols = level.grid.cols, rows = Math.ceil(match.tiles.length / cols);
+    const r = Math.max(0, Math.min(Math.floor(idx / cols), rows - 2));
+    const c = Math.max(0, Math.min(idx % cols, cols - 2));
+    return [...new Set([r * cols + c, r * cols + c + 1, (r + 1) * cols + c, (r + 1) * cols + c + 1])]
+      .filter((i) => i < match.tiles.length);
+  }
+
+  // Player-aimed power-ups: which tiles are valid targets + what the hint chip says.
+  // (Bomb is the approved slice; Arrow/Spear/Sword join this map on replication.)
+  const AIM_POWERS = {
+    bomb: {
+      hint: 'Tap a tile — drop the Bomb there',
+      targets: () => match.tiles.filter((t) => !t.matched).map((t) => t.index),
+    },
+  };
+
+  function enterAim(id) {
+    const cfg = AIM_POWERS[id];
+    const targets = new Set(cfg.targets());
+    if (!targets.size) return;
+    aiming = { id, targets };
+    board.classList.add('kt-aiming');
+    targets.forEach((i) => tileEls[i] && tileEls[i].classList.add('kt-aim-target'));
+    const btn = tray.querySelector(`.kt-power[data-id="${id}"]`);
+    if (btn) btn.classList.add('kt-armed');
+    const hint = document.createElement('div');
+    hint.className = 'kt-aim-hint';
+    hint.innerHTML = `<span>🎯 ${cfg.hint}</span><button type="button" class="kt-aim-x" aria-label="Cancel">✕</button>`;
+    hint.querySelector('.kt-aim-x').addEventListener('click', cancelAim);
+    boardWrap.appendChild(hint);
+    aiming.hintEl = hint;
+    aiming.onKey = (e) => { if (e.key === 'Escape') cancelAim(); };
+    document.addEventListener('keydown', aiming.onKey);
+  }
+
+  function cancelAim() {
+    if (!aiming) return;
+    board.classList.remove('kt-aiming');
+    tileEls.forEach((el) => el && el.classList.remove('kt-aim-target'));
+    tray.querySelectorAll('.kt-power.kt-armed').forEach((b) => b.classList.remove('kt-armed'));
+    if (aiming.hintEl) aiming.hintEl.remove();
+    document.removeEventListener('keydown', aiming.onKey);
+    aiming = null;
+  }
+
+  function aimTap(index) {
+    if (!aiming.targets.has(index)) return;   // invalid target: ignore, stay in aim mode
+    const id = aiming.id;
+    cancelAim();
+    const ok = EFFECTS[id](index);
+    if (ok) consumePower(id);
+  }
+
+  // Shared post-fire bookkeeping: bonus forfeit, sfx, inventory, save, tray refresh.
+  function consumePower(id) {
+    usedPowerup = true;                  // forfeits the "no power-ups" coin bonus (D13)
+    sfx('powerup');
+    gameState.save.inventory[id] -= 1;
+    persistSave(adapter, gameState.save);
+    bus.emit('powerup:used', { id });
+    buildTray();
+  }
+
   function usePower(id, srcEl) {
     if (finished) return;
     const fn = EFFECTS[id];
     if (!fn) { return; }                 // not-yet-implemented power-ups stay in the pack
+    // Re-tapping the armed power-up cancels aim mode; arming a different one switches.
+    if (aiming) { const same = aiming.id === id; cancelAim(); if (same) return; }
     // D11: at most 2 durational buffs active at once, and never stack the same one.
     if (ACTIVE_BUFFS.has(id) && (activeBuffs.has(id) || activeBuffs.size >= 2)) return;
     // Capture the projectile origin (the tapped button's centre, scene-relative) before the
@@ -634,14 +713,11 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
     const sr = scene.getBoundingClientRect();
     if (btn) { const br = btn.getBoundingClientRect(); castSrc = { x: br.left - sr.left + br.width / 2, y: br.top - sr.top + br.height / 2 }; }
     else castSrc = { x: sr.width / 2, y: sr.height - 30 };
+    // Targeted power-ups arm and wait for the player's tile pick instead of auto-firing.
+    if (AIM_POWERS[id]) { enterAim(id); return; }
     const ok = fn();
     if (!ok) return;                     // timer power-ups are no-ops on untimed levels
-    usedPowerup = true;                  // forfeits the "no power-ups" coin bonus (D13)
-    sfx('powerup');
-    gameState.save.inventory[id] -= 1;
-    persistSave(adapter, gameState.save);
-    bus.emit('powerup:used', { id });
-    buildTray();
+    consumePower(id);
   }
 
   buildBoard();

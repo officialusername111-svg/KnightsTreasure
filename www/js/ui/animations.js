@@ -161,6 +161,73 @@ export function castImpact(scene, el, { kind = 'spark', count = 16 } = {}) {
   el.addEventListener('animationend', () => el.classList.remove('kt-cast-flash'), { once: true });
 }
 
+// Screen-level shake for heavy impacts (Bomb): decaying random jolts on the whole scene.
+export function sceneShake(scene, { amp = 8, ms = 480 } = {}) {
+  if (reduced() || !scene) return;
+  const steps = 9;
+  const frames = [{ transform: 'translate(0,0)' }];
+  for (let i = 1; i < steps; i++) {
+    const decay = 1 - i / steps;
+    frames.push({ transform: `translate(${(Math.random() * 2 - 1) * amp * decay}px, ${(Math.random() * 2 - 1) * amp * decay}px)` });
+  }
+  frames.push({ transform: 'translate(0,0)' });
+  scene.animate(frames, { duration: ms, easing: 'linear' });
+}
+
+// "Hit-stop" beat: a white-core dark vignette holds for holdMs, then releases and fires
+// onRelease. Under reduced-motion the release fires immediately (gameplay never waits).
+export function impactFreeze(scene, { holdMs = 90, onRelease } = {}) {
+  const fire = onRelease || (() => {});
+  if (reduced()) { fire(); return; }
+  const o = document.createElement('div');
+  o.className = 'kt-freeze';
+  fxLayer(scene).appendChild(o);
+  setTimeout(() => {
+    o.classList.add('out');
+    setTimeout(() => o.remove(), 220);
+    fire();
+  }, holdMs);
+}
+
+// Radial fire streaks bursting outward from a scene-relative point (detonations).
+export function radialStreaks(scene, at, { count = 10, color = 'rgba(255,190,90,.95)' } = {}) {
+  if (reduced() || !at) return;
+  const layer = fxLayer(scene);
+  for (let i = 0; i < count; i++) {
+    const s = document.createElement('div');
+    s.className = 'kt-rstreak';
+    s.style.left = at.x + 'px';
+    s.style.top = at.y + 'px';
+    s.style.background = `linear-gradient(90deg, ${color}, transparent)`;
+    s.style.transform = `rotate(${(360 / count) * i + Math.random() * 18}deg)`;
+    s.addEventListener('animationend', () => s.remove(), { once: true });
+    layer.appendChild(s);
+  }
+}
+
+// Fading heat glow left on struck tiles (Bomb scorch).
+export function scorchGlow(els, ms = 1100) {
+  if (reduced()) return;
+  els.forEach((el) => {
+    if (!el) return;
+    el.style.setProperty('--scorch-ms', ms + 'ms');
+    el.classList.remove('kt-scorched');
+    void el.offsetWidth;
+    el.classList.add('kt-scorched');
+    el.addEventListener('animationend', () => el.classList.remove('kt-scorched'), { once: true });
+  });
+}
+
+// Kick a tile away from a blast point (unit direction dx,dy) with a springy return.
+export function tileKick(el, dx, dy, { dist = 10, ms = 340 } = {}) {
+  if (!el || reduced()) return;
+  el.animate([
+    { transform: 'translate(0,0)' },
+    { transform: `translate(${dx * dist}px, ${dy * dist}px)`, offset: 0.35 },
+    { transform: 'translate(0,0)' },
+  ], { duration: ms, easing: 'cubic-bezier(.34,1.56,.64,1)' });
+}
+
 // Quick horizontal shake on a tile (impact reaction).
 export function tileShake(el) {
   if (!el || reduced()) return;
