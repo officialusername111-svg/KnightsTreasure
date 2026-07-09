@@ -31,6 +31,7 @@
 .kt-mail-btn { position:relative; flex:none; background:rgba(6,4,0,.5); border:1px solid rgba(201,146,42,.55); color:var(--gold-lt);
   border-radius:11px; width:42px; height:42px; display:flex; align-items:center; justify-content:center; cursor:pointer; }
 .kt-mail-btn:active { transform:scale(.94); }
+.kt-mail-btn .kt-mail-ic { width:26px; height:26px; object-fit:contain; display:block; }
 .kt-mail-badge { position:absolute; top:-5px; right:-5px; min-width:18px; height:18px; padding:0 4px; border-radius:999px;
   background:linear-gradient(180deg,#f06a3a,#c0341a); border:1.5px solid #2a1400; color:#fff; font-size:10px; font-weight:700;
   display:flex; align-items:center; justify-content:center; line-height:1; }
@@ -144,10 +145,11 @@
 .kt-tut-dock.in { animation:kt-tut-dock-in .28s ease both; }
 @keyframes kt-tut-dock-in { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
 
-.kt-tut-portrait { flex:none; align-self:flex-end; width:104px; height:140px; border-radius:14px; overflow:hidden;
-  border:2px solid var(--gold); background:linear-gradient(180deg, rgba(60,40,12,.85), rgba(6,4,0,.6));
-  box-shadow:0 5px 16px rgba(0,0,0,.6); }
-.kt-tut-portrait img { width:100%; height:100%; object-fit:cover; object-position:50% 14%; display:block; }
+/* Boxless NPC (owner decision 2026-07-08): the guide stands free beside the bubble —
+   full figure, no frame/crop, grounded by a drop shadow instead of a card. */
+.kt-tut-portrait { flex:none; align-self:flex-end; width:104px; height:150px;
+  filter:drop-shadow(0 6px 12px rgba(0,0,0,.65)); }
+.kt-tut-portrait img { width:100%; height:100%; object-fit:contain; object-position:bottom center; display:block; }
 
 .kt-tut-bubble { flex:1; min-width:0; position:relative; pointer-events:auto;
   background:linear-gradient(180deg,#efe2c2,#e3d3ad); border-radius:13px; padding:10px 13px;

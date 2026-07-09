@@ -16,8 +16,20 @@ export function renderHud({ stage, level, timeLimit, coins, name, rank, badge = 
     `</div>`;
   el.setTime = (s) => {
     const v = el.querySelector('#kt-timer-val');
+    if (el.dataset.frozen) return;               // Shield holds the display; game restores after
     v.textContent = s == null ? TEXT.noTimer : s;
     v.classList.toggle('danger', s != null && s <= 10);
+  };
+  // Shield power-up: swap the timer value for a blinking shield while the countdown is frozen.
+  el.setFrozen = (on) => {
+    const v = el.querySelector('#kt-timer-val');
+    if (on) {
+      el.dataset.frozen = '1';
+      v.innerHTML = `<img class="kt-timer-shield" src="${ASSETS.ui}ui_power_shield.png" alt="Timer frozen">`;
+    } else {
+      delete el.dataset.frozen;
+      v.textContent = '';                         // caller follows with setTime(timeLeft)
+    }
   };
   el.setCoins = (n) => { el.querySelector('#kt-coins-val').textContent = n; };
   return el;

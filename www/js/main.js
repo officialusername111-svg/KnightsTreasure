@@ -1,4 +1,5 @@
 import { createStorageAdapter } from './platform/storageAdapter.js';
+import { setHaptics } from './systems/haptics.js';
 import { loadSave, persistSave } from './core/save.js';
 import { createGameState, recordLevelResult, nextPosition, mapPlayLevel } from './core/state.js';
 import { createEventBus } from './core/eventBus.js';
@@ -38,6 +39,7 @@ async function boot() {
   let playTarget = { stage: 1, level: 1 };
 
   audio.configure(gameState.save.settings);
+  setHaptics((gameState.save.settings || {}).haptics !== false);
   // Web Audio needs a user gesture to start on mobile; resume on first interaction.
   const wake = () => { audio.resume(); window.removeEventListener('pointerdown', wake); };
   window.addEventListener('pointerdown', wake, { once: true });

@@ -29,6 +29,33 @@ export function chooseSwaps(tiles, { moveCount = 1, pinned = new Set(), rng = Ma
   return swaps;
 }
 
+// Audit B1 (2026-07-08): positional power-up geometry runs on the VISUAL grid.
+// `domOrder` is the model index at each visual slot (D8 swaps reorder slots while the
+// model index stays the tile's identity). Both return MODEL indices.
+
+// The 2×2 blast zone anchored at a tile's visual slot, clamped into the grid.
+export function visualBombZone(domOrder, cols, anchorModelIdx) {
+  const total = domOrder.length, rows = Math.ceil(total / cols);
+  const v = Math.max(0, domOrder.indexOf(anchorModelIdx));
+  const r = Math.max(0, Math.min(Math.floor(v / cols), rows - 2));
+  const c = Math.max(0, Math.min(v % cols, cols - 2));
+  return [...new Set([r * cols + c, r * cols + c + 1, (r + 1) * cols + c, (r + 1) * cols + c + 1])]
+    .filter((p) => p < total).map((p) => domOrder[p]);
+}
+
+// The row + column (cross) through a tile's visual slot; row excludes nothing, col
+// excludes the anchor row so the two never overlap.
+export function visualCross(domOrder, cols, anchorModelIdx) {
+  const v0 = Math.max(0, domOrder.indexOf(anchorModelIdx));
+  const r0 = Math.floor(v0 / cols), c0 = v0 % cols;
+  const row = [], col = [];
+  domOrder.forEach((m, v) => {
+    if (Math.floor(v / cols) === r0) row.push(m);
+    else if (v % cols === c0) col.push(m);
+  });
+  return { row, col };
+}
+
 // D9 locked tiles — pick which indices start locked (a random subset). Pure; rng injectable.
 export function chooseLocked(tiles, lockedCount = 0, rng = Math.random) {
   if (!lockedCount) return [];

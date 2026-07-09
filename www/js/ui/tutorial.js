@@ -1,5 +1,4 @@
 import { ASSETS } from '../data/config.js';
-import { fitPortrait } from './portraitFit.js';
 
 // NPC-led tutorials (Plan 3). Three flavours:
 //  - showInteractiveTutorial: live, event-driven basics on level 1-1 (the Forest Guard
@@ -42,11 +41,9 @@ function buildDock({ name, portrait, title, text, dismiss }) {
   );
 }
 
-// Frame the dock's portrait by figure (portraitFit) once the dock HTML is in the DOM.
-function fitDock(root) {
-  const p = root.querySelector('.kt-tut-portrait');
-  if (p) fitPortrait(p.querySelector('img'), p, 'bust');
-}
+// Boxless dock (owner decision 2026-07-08): the portrait shows the full figure via
+// object-fit:contain, so the bust-crop framing is intentionally NOT applied here.
+function fitDock() {}
 
 // ---- live, interactive basics (level 1-1) ----
 const STEPS = [

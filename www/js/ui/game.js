@@ -1,19 +1,20 @@
-import { createMatchState, tapTile, resolveMismatch } from '../systems/match.js';
-import { chooseSwaps } from '../systems/mechanics.js';
+import { createMatchState, tapTile, resolveMismatch, matchPair } from '../systems/match.js';
+import { chooseSwaps, visualBombZone, visualCross } from '../systems/mechanics.js';
 import { computeStars, computeScore, mistakePenalty } from '../systems/scoring.js';
 import { recordLevelResult } from '../core/state.js';
 import { persistSave } from '../core/save.js';
 import { ASSETS, TEXT } from '../data/config.js';
 import { tilePoolForStage } from '../data/tiles.js';
-import { ITEMS } from '../data/items.js';
+import { ITEMS, POWERUPS } from '../data/items.js';
 import { rankFor } from '../systems/ranks.js';
 import { levelReward, comboCoins as comboCoinsFor, earn } from '../systems/economy.js';
 import { recordWin } from '../systems/dailyDuty.js';
 import { sfx } from '../systems/audio.js';
+import { haptic } from '../systems/haptics.js';
 import { confirmModal } from './modal.js';
 import { renderHud } from './hud.js';
 import { showInteractiveTutorial, showMechanicTutorial } from './tutorial.js';
-import { burst, popMatch, burstAtEl, staggerIn, comboBanner, countUp, starSlam, castProjectile, castImpact, boardWave, shieldBubble, igniteReveal, slashAcross, boardFlash, irisBloom, streakReveal, edgePulse, sceneShake, impactFreeze, radialStreaks, scorchGlow, tileKick } from './animations.js';
+import { burst, popMatch, burstAtEl, staggerIn, comboBanner, countUp, starSlam, castProjectile, castImpact, boardWave, shieldBubble, igniteReveal, boardFlash, irisBloom, streakReveal, edgePulse, sceneShake, impactFreeze, radialStreaks, scorchGlow, tileKick, bonusFloat, pairMarks, pourOver, debrisFall, hornHerald, lightBeam, lightSweep, boardZoom, impactRing } from './animations.js';
 
 function shuffle(arr) {
   const a = [...arr];
@@ -187,18 +188,30 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
     if (result === 'ignored') return;
     match = state;
     bus.emit('tile:' + result, { index });
-    if (result === 'flip') sfx('flip');
-    else if (result === 'mismatch') sfx('mismatch');
+    if (result === 'flip') { sfx('flip'); haptic('flip'); }
+    else if (result === 'mismatch') { sfx('mismatch'); haptic('mismatch'); }
     else if (result === 'match') sfx('match');
     syncBoard();
+    // Owner decision 2026-07-08: flipping the twin of a permanently revealed tile
+    // completes the match at once — never a second tap on an already-visible tile.
+    if (result === 'flip') {
+      const t = match.tiles[index];
+      const twin = match.tiles.find((o) =>
+        o.index !== index && !o.matched && !o.isDecoy && o.icon === t.icon);
+      if (twin && permaReveal.has(twin.index)) {
+        const { state: s2, result: r2 } = matchPair(match, index, twin.index);
+        if (r2 !== 'ignored') {
+          match = s2;
+          sfx('match');
+          celebrateMatch(index, twin.index);
+          syncBoard();
+          if (r2 === 'win') win();
+          return;
+        }
+      }
+    }
     if (result === 'match' || result === 'win') {
-      combo += 1;
-      maxCombo = Math.max(maxCombo, combo);
-      if (warHornActive) warHornBonus += 100;   // War Horn doubles this match (base 100 → 200)
-      const pair = [tileEls[prevFirst], tileEls[index]];
-      popMatch(pair);
-      pair.forEach((el) => burstAtEl(scene, el, 10, 'spark'));
-      comboBanner(scene, combo);
+      celebrateMatch(prevFirst, index);
     }
     if (result === 'mismatch') {
       combo = 0;
@@ -216,7 +229,10 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
     finished = true;
     stopTimer();
     stopMoving();
-    sfx('win'); sfx('coin');
+    if (mismatchTimer) { clearTimeout(mismatchTimer); mismatchTimer = null; }   // audit B3
+    sfx('win'); sfx('coin'); haptic('win');
+    // victory wave: the cleared board ripples once, left-to-right, before the overlay
+    tileEls.forEach((el, k) => { if (el) setTimeout(() => { popMatch([el]); if (k % 3 === 0) burstAtEl(scene, el, 6, 'spark'); }, k * 45); });
     let stars = computeStars({
       mistakes: match.mistakes,
       pairs: match.totalPairs,
@@ -252,6 +268,7 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
       speed: elapsed <= level.parTime,
       comboCoins: comboCoinsFor(maxCombo),
     });
+    const prevStage = gameState.save.currentStage;
     const advanced = recordLevelResult(gameState, { stars });
     earn(advanced.save, coins);
     recordWin(advanced.save, { mistakes: match.mistakes });
@@ -259,13 +276,19 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
     advanced.save.brewBonusNext = false;
     persistSave(adapter, advanced.save);
     bus.emit('level:complete', { id: level.id, stars, score });
-    showWin(stars, score, timeRemaining, advanced, coins);
+    // "Power-up unlocked" moment (2026-07-09): reaching a new stage surfaces what the
+    // Blacksmith can now forge, instead of unlocking silently.
+    const newPowers = advanced.save.currentStage > prevStage
+      ? POWERUPS.filter((p) => p.unlockStage === advanced.save.currentStage) : [];
+    showWin(stars, score, timeRemaining, advanced, coins, newPowers);
   }
 
   function lose() {
     finished = true;
     stopTimer();
     stopMoving();
+    haptic('lose');
+    if (mismatchTimer) { clearTimeout(mismatchTimer); mismatchTimer = null; }   // audit B3
     sfx('lose');
     showOverlay(
       `<div class="kt-ov-banner defeat"><img src="${ASSETS.ui}ui_banner_defeat.png" alt="" onerror="this.remove()">` +
@@ -274,7 +297,7 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
     );
   }
 
-  function showWin(stars, score, timeRemaining, advanced, coins) {
+  function showWin(stars, score, timeRemaining, advanced, coins, newPowers = []) {
     const breakdown =
       `<div class="kt-ov-score">` +
         `<div class="total">${TEXT.score}: <span id="kt-ov-score">0</span></div>` +
@@ -285,7 +308,11 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
         (powerPenalty ? `<div class="row" style="color:#c06a4a;"><span>Power-ups used</span><span>−${powerPenalty}</span></div>` : '') +
         (warHornBonus ? `<div class="row" style="color:#8fd07a;"><span>War Horn ×2</span><span>+${warHornBonus}</span></div>` : '') +
       `</div>` +
-      `<div class="kt-ov-reward"><img src="${ASSETS.ui}ui_coin.png" alt="">+${coins} coins</div>`;
+      `<div class="kt-ov-reward"><img src="${ASSETS.ui}ui_coin.png" alt="">+${coins} coins</div>` +
+      (newPowers.length
+        ? `<div class="kt-ov-unlock"><img src="${ASSETS.ui}${newPowers[0].icon}.png" alt="">` +
+          `New at the Blacksmith: <b>${newPowers.map((p) => p.name).join(' · ')}</b></div>`
+        : '');
     showOverlay(
       `<div class="kt-ov-banner victory"><img src="${ASSETS.ui}ui_banner_victory.png" alt="" onerror="this.remove()">` +
         `<span class="kt-ov-banner-label">${TEXT.win}</span></div>` +
@@ -360,8 +387,9 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
 
   // ---- moving tiles (D8) — telegraphed swaps of face-down tiles ----
   function movementPaused() {
-    // Never move mid-turn, during a reveal, while paused/backgrounded, or once finished.
-    return finished || document.hidden || revealActive > 0 || match.firstPick !== null || match.locked;
+    // Never move mid-turn, during a reveal, while the player aims a power-up (audit B2),
+    // while paused/backgrounded, or once finished.
+    return finished || document.hidden || revealActive > 0 || aiming !== null || match.firstPick !== null || match.locked;
   }
   function startMoving() {
     if (!level.moveIntervalMs) return;
@@ -455,8 +483,9 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
     scene.appendChild(b);
     setTimeout(() => b.remove(), 10000);
   }
-  // Power-up icon art used as the flying projectile.
+  // Power-up icon art (tray) and dedicated effect sprites (what actually flies).
   const POWER_ICON = (id) => `${ASSETS.ui}${ITEMS[id].icon}.png`;
+  const FX = (name) => `assets/images/fx/${name}.png`;
   // Fire a projectile from the tapped button to each target tile; on landing, shake + onImpact.
   function castToTiles(id, idxs, onImpact, opts = {}) {
     const src = castSrc;            // snapshot the origin (the button may re-render away)
@@ -472,75 +501,149 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
     });
   }
 
+  // Shared match celebration: combo bookkeeping, War Horn bonus, pop + sparks + banner.
+  // Callers play their own sfx and run syncBoard/win() around it.
+  function celebrateMatch(i, j) {
+    combo += 1;
+    maxCombo = Math.max(maxCombo, combo);
+    if (warHornActive) warHornBonus += 100;   // War Horn doubles this match (base 100 → 200)
+    const pair = [tileEls[i], tileEls[j]];
+    popMatch(pair);
+    pair.forEach((el) => { if (el) { burstAtEl(scene, el, 10, 'spark'); impactRing(scene, el, 'rgba(245,200,66,.9)'); } });
+    comboBanner(scene, combo);
+    haptic(combo >= 5 ? 'combo' : 'match');
+    // combo escalation: punch-in from 3-chains, add a shudder from 5-chains
+    if (combo >= 3) boardZoom(boardWrap, tileEls[j], { scale: 1.04, inMs: 100, holdMs: 40, outMs: 260 });
+    if (combo >= 5) { sceneShake(scene, { amp: 4, ms: 260 }); sfx('fanfare'); }
+  }
+
+  // Owner decision 2026-07-08: a pair held fully face-up by power-up reveals completes
+  // itself — the player never taps two already-visible tiles. Runs the normal match
+  // celebration (combo, War Horn bonus, win check) through the pure matchPair transition.
+  function autoMatchRevealed() {
+    if (finished) return;
+    const groups = {};
+    match.tiles.forEach((t) => {
+      if (!t.matched && !t.isDecoy && !t.locked && permaReveal.has(t.index)) {
+        (groups[t.icon] = groups[t.icon] || []).push(t.index);
+      }
+    });
+    Object.values(groups).forEach((g) => {
+      if (finished || g.length < 2) return;
+      const [i, j] = g;
+      const { state, result } = matchPair(match, i, j);
+      if (result === 'ignored') return;
+      match = state;
+      sfx('match');
+      celebrateMatch(i, j);
+      syncBoard();
+      if (result === 'win') win();
+    });
+  }
+
   const EFFECTS = {
-    // Raven flutters to a real pair → both pulse and glow.
-    raven() {
-      const byIcon = {};
-      realUnmatched().forEach((t) => (byIcon[t.icon] = byIcon[t.icon] || []).push(t));
-      const pair = Object.values(byIcon).find((g) => g.length >= 2);
-      if (!pair) return false;
-      const els = [tileEls[pair[0].index], tileEls[pair[1].index]];
-      // raven flies in flapping (spin wobble), scatters feathers over the pair, they glow
-      castProjectile(scene, castSrc, els[0], { icon: POWER_ICON('raven'), arc: 90, spin: 18,
-        onImpact: () => { els.forEach((e) => { burstAtEl(scene, e, 9, 'feather'); castImpact(scene, e, { count: 6 }); }); flash(els, 1200); } });
+    // Raven (player-aimed): flies FROM the picked tile TO its pair — feathers and a glow
+    // flash on both ends so the player sees the link.
+    raven(targetIdx) {
+      const from = match.tiles[targetIdx];
+      const partner = match.tiles.find((o) =>
+        o.index !== targetIdx && !o.matched && !o.isDecoy && o.icon === from.icon);
+      if (!partner) return false;
+      const els = [tileEls[targetIdx], tileEls[partner.index]];
+      burstAtEl(scene, els[0], 9, 'feather');
+      castProjectile(scene, tileCenter(targetIdx), els[1], { icon: FX('fx_raven_fly'), arc: 90, spin: 0, flipX: true, trailColor: 'rgba(120,90,160,.75)',
+        onImpact: () => { burstAtEl(scene, els[1], 9, 'feather'); els.forEach((e) => castImpact(scene, e, { count: 6 })); boardZoom(boardWrap, els[1], { scale: 1.04, inMs: 110, holdMs: 40, outMs: 260 }); flash(els, 1200); } });
       return true;
     },
-    // Torch ignites: a faint fire-light blooms from the centre and reveals tiles center-out.
+    // Torch: pinned at the board centre, its flame blooms outward revealing every tile.
     torch() {
       const decoys = match.tiles.filter((t) => t.isDecoy && !t.matched);
       const items = realUnmatched().concat(decoys).map((t) => ({ el: tileEls[t.index], decoy: t.isDecoy }));
       if (!items.length) return false;
-      igniteRevealTiles(items, 2000);
+      castProjectile(scene, castSrc, board, { icon: POWER_ICON('torch'), arc: 60, ms: 380, stickMs: 2300,
+        onImpact: () => {
+          // slow sustained push while the flame sweeps the board, easing out as it fades
+          boardZoom(boardWrap, board, { scale: 1.04, inMs: 420, holdMs: 1300, outMs: 520 });
+          igniteRevealTiles(items, 2000);
+        } });
       return true;
     },
-    // Eagle Eye: an iris opens over the board, then real pairs glow gold.
+    // Eagle Eye: iris opens, then every pair gets a matching sigil — same mark, same hue,
+    // per pair — so partners are visibly linked for 5s.
     eagleEye() {
       irisBloom(scene, board);
-      const els = realUnmatched().map((t) => tileEls[t.index]);
-      els.forEach((el) => el && el.classList.add('hint'));
-      setTimeout(() => els.forEach((el) => el && el.classList.remove('hint')), 5000);
+      lightSweep(scene, board);
+      const byIcon = {};
+      realUnmatched().forEach((t) => (byIcon[t.icon] = byIcon[t.icon] || []).push(t));
+      const pairs = Object.values(byIcon).filter((g) => g.length >= 2)
+        .map((g) => [tileEls[g[0].index], tileEls[g[1].index]]);
+      if (!pairs.length) return false;
+      pairMarks(scene, pairs, 5000);
       return true;
     },
-    // Hourglass flies up to the timer → +15s with a sparkle.
+    // Hourglass flies up to the timer → a green "+15s" pops and is absorbed by the HUD.
     hourglass() {
       if (level.timeLimit == null) return false;
       castProjectile(scene, castSrc, hud, { icon: POWER_ICON('hourglass'), arc: 40,
-        onImpact: () => { timeLeft += 15; hud.setTime(timeLeft); burstAtEl(scene, hud, 10, 'spark'); } });
+        onImpact: () => {
+          const tv = hud.querySelector('#kt-timer-val');
+          const sr = scene.getBoundingClientRect(), tr = tv.getBoundingClientRect();
+          lightBeam(scene, castSrc, { x: tr.left - sr.left + tr.width / 2, y: tr.top - sr.top + tr.height / 2 }, { color: 'rgba(126,247,138,.85)', width: 5, ms: 380 });
+          timeLeft += 15; hud.setTime(timeLeft);
+          burstAtEl(scene, hud, 10, 'spark');
+          bonusFloat(scene, tv, { text: '+15s' });
+        } });
       return true;
     },
-    // Shield slams down onto the board → a blue ripple + flash, then a shimmering bubble holds.
+    // Shield bashes the board (flash + shake), then flies on to the timer — which blinks
+    // as a shield for the whole freeze window.
     shield() {
       if (level.timeLimit == null) return false;
       frozen = true; activeBuffs.add('shield');
+      const br = () => board.getBoundingClientRect();
       castProjectile(scene, castSrc, board, { icon: POWER_ICON('shield'), arc: 10, ms: 320,
         onImpact: () => {
+          const sr = scene.getBoundingClientRect();
           boardFlash(scene, { color: 'rgba(150,210,255,.5)' });
-          boardWave(scene, { x: board.getBoundingClientRect().left - scene.getBoundingClientRect().left + board.clientWidth / 2, y: board.getBoundingClientRect().top - scene.getBoundingClientRect().top + board.clientHeight / 2 }, { color: 'rgba(150,210,255,.7)', rings: 2 });
+          boardZoom(boardWrap, board, { scale: 1.08, inMs: 100, holdMs: 50, outMs: 320 });
+          sceneShake(scene, { amp: 5, ms: 300 });
+          boardWave(scene, { x: br().left - sr.left + board.clientWidth / 2, y: br().top - sr.top + board.clientHeight / 2 }, { color: 'rgba(150,210,255,.7)', rings: 2 });
           shieldBubble(boardWrap, 10000);
+          castProjectile(scene, { x: br().left - sr.left + board.clientWidth / 2, y: br().top - sr.top + 20 }, hud, {
+            icon: POWER_ICON('shield'), arc: 30, ms: 360,
+            onImpact: () => { hud.setFrozen(true); burstAtEl(scene, hud, 8, 'shard'); } });
         } });
-      setTimeout(() => { frozen = false; activeBuffs.delete('shield'); }, 10000);
+      setTimeout(() => {
+        frozen = false; activeBuffs.delete('shield');
+        hud.setFrozen(false); hud.setTime(timeLeft);
+      }, 10000);
       return true;
     },
-    // Arrow shoots to one real tile → it thuds in (sticks briefly), shakes and reveals (−25 score).
-    arrow() {
-      const t = realUnmatched().find((x) => !permaReveal.has(x.index));
-      if (!t) return false;
+    // Arrow (player-aimed): a real arrow streaks along a light tracer, pierces the picked
+    // tile and thuds in — the tile reveals (−25).
+    arrow(targetIdx) {
       powerPenalty += 25;
-      castToTiles('arrow', [t.index], (idx) => { permaReveal.add(idx); syncBoard(); }, { arc: 36, stagger: 0, stickMs: 280 });
+      lightBeam(scene, castSrc, tileCenter(targetIdx), { color: 'rgba(255,220,130,.85)', width: 4, ms: 300 });
+      castProjectile(scene, castSrc, tileEls[targetIdx], { icon: FX('fx_arrow'), arc: 24, ms: 240, faceTarget: true, stickMs: 300, trailColor: 'rgba(255,220,130,.7)',
+        onImpact: () => { sfx('thud'); castImpact(scene, tileEls[targetIdx], { count: 18 }); boardZoom(boardWrap, tileEls[targetIdx], { scale: 1.05, inMs: 90, holdMs: 30, outMs: 240 }); permaReveal.add(targetIdx); syncBoard(); setTimeout(autoMatchRevealed, 260); } });
       return true;
     },
-    // Sword slashes across a matching real pair → a blade-streak + glint, both reveal (−25 score).
-    sword() {
-      const byIcon = {};
-      realUnmatched().filter((t) => !permaReveal.has(t.index))
-        .forEach((t) => (byIcon[t.icon] = byIcon[t.icon] || []).push(t));
-      const pair = Object.values(byIcon).find((g) => g.length >= 2);
-      if (!pair) return false;
+    // Sword (player-aimed): stabs the picked tile from above, then — half a beat later —
+    // its pair. Both reveal (−25) and the pair auto-matches.
+    sword(targetIdx) {
+      const from = match.tiles[targetIdx];
+      const partner = match.tiles.find((o) =>
+        o.index !== targetIdx && !o.matched && !o.isDecoy && o.icon === from.icon && !permaReveal.has(o.index));
+      if (!partner) return false;
       powerPenalty += 25;
-      const els = [tileEls[pair[0].index], tileEls[pair[1].index]];
-      slashAcross(scene, els);
-      els.forEach((e, k) => setTimeout(() => { castImpact(scene, e, { count: 14 }); }, 120 + k * 80));
-      setTimeout(() => { permaReveal.add(pair[0].index); permaReveal.add(pair[1].index); syncBoard(); }, 180);
+      const stab = (idx) => {
+        const c = tileCenter(idx);
+        lightBeam(scene, { x: c.x, y: c.y - 130 }, c, { color: 'rgba(230,240,255,.9)', width: 5, ms: 240 });
+        castProjectile(scene, { x: c.x, y: c.y - 130 }, tileEls[idx], { icon: FX('fx_sword_stab'), arc: 0, ms: 190, spin: 0, stickMs: 380,
+          onImpact: () => { sfx('thud'); castImpact(scene, tileEls[idx], { count: 14 }); boardZoom(boardWrap, tileEls[idx], { scale: 1.05, inMs: 90, holdMs: 30, outMs: 240 }); permaReveal.add(idx); syncBoard(); } });
+      };
+      stab(targetIdx);
+      setTimeout(() => { stab(partner.index); setTimeout(autoMatchRevealed, 420); }, 500);
       return true;
     },
     // Bomb (player-aimed): lobbed to the tapped 2×2 zone → hit-stop, screen shake,
@@ -556,6 +659,8 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
           const cr = tileEls[centre].getBoundingClientRect();
           const at = { x: cr.left - sr.left + cr.width / 2, y: cr.top - sr.top + cr.height / 2 };
           boardFlash(scene, { color: 'rgba(255,210,120,.85)' });
+          sfx('boom'); haptic('bomb');            // AV-sync: detonation lands ON the release frame
+          boardZoom(boardWrap, tileEls[centre], { scale: 1.12, inMs: 110, holdMs: 80, outMs: 480 });
           sceneShake(scene, { amp: 9, ms: 520 });
           boardWave(scene, at, { color: 'rgba(255,170,80,.8)', rings: 2 });
           radialStreaks(scene, at, { count: 10 });
@@ -570,34 +675,34 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
             permaReveal.add(i);
             syncBoard();
           }, k * 70));
+          setTimeout(autoMatchRevealed, zone.length * 70 + 320);
+          debrisFall(scene, at, 12);
           scorchGlow(zone.map((i) => tileEls[i]), 1100);
         } }) });
       return true;
     },
-    // Spear thrusts across the row richest in hidden real tiles → the row flips for 3s.
-    spear() {
-      const cols = level.grid.cols, rows = Math.ceil(match.tiles.length / cols);
-      let bestRow = -1, bestCount = 0;
-      for (let r = 0; r < rows; r++) {
-        let cnt = 0;
-        for (let c = 0; c < cols; c++) { const t = match.tiles[r * cols + c]; if (t && !t.matched && !t.isDecoy) cnt++; }
-        if (cnt > bestCount) { bestCount = cnt; bestRow = r; }
-      }
-      if (bestRow < 0) return false;
-      const els = [], dim = []; let mid = bestRow * cols;
-      for (let c = 0; c < cols; c++) {
-        const i = bestRow * cols + c, t = match.tiles[i];
-        if (t && !t.matched) { els.push(tileEls[i]); mid = i; if (t.isDecoy) dim.push(tileEls[i]); }
-      }
-      // a horizontal streak spears the row left→right; tiles flip in its wake
+    // Spear (player-aimed, owner decision 2026-07-08): slices BOTH the row and the column
+    // of the picked tile — two streaks form a cross; every tile in the cross flips for 3s.
+    spear(targetIdx) {
+      // Cross geometry runs on VISUAL slots (audit B1) — pure math in mechanics.js.
+      const cross = visualCross(domOrder(), level.grid.cols, targetIdx);
+      const mk = (models) => models
+        .map((m) => match.tiles[m])
+        .filter((t) => t && !t.matched)
+        .map((t) => ({ el: tileEls[t.index], decoy: t.isDecoy }));
+      const rowItems = mk(cross.row);
+      const colItems = mk(cross.col);
+      if (!rowItems.length && !colItems.length) return false;
       revealActive += 1;
-      const items = els.map((e) => ({ el: e, decoy: dim.includes(e) }));
-      streakReveal(scene, {
-        tiles: items, holdMs: 3000,
-        reveal: (it) => { castImpact(scene, it.el, { count: 8 }); it.el.classList.add('flipped'); if (it.decoy) it.el.classList.add('kt-decoy-dim'); },
-        hide: (it) => { it.el.classList.remove('flipped', 'kt-decoy-dim'); },
-      });
-      setTimeout(() => { revealActive = Math.max(0, revealActive - 1); syncBoard(); }, 3000 + 500);
+      const reveal = (it) => { castImpact(scene, it.el, { count: 8 }); it.el.classList.add('flipped'); if (it.decoy) it.el.classList.add('kt-decoy-dim'); };
+      const hide = (it) => { it.el.classList.remove('flipped', 'kt-decoy-dim'); };
+      lightBeam(scene, castSrc, tileCenter(targetIdx), { color: 'rgba(200,230,255,.8)', width: 4, ms: 320 });
+      castProjectile(scene, castSrc, tileEls[targetIdx], { icon: FX('fx_spear'), arc: 30, ms: 280, faceTarget: true, trailColor: 'rgba(200,230,255,.7)',
+        onImpact: () => {
+          streakReveal(scene, { tiles: rowItems, holdMs: 3000, reveal, hide });
+          streakReveal(scene, { tiles: colItems, holdMs: 3000, reveal, hide, vertical: true });
+        } });
+      setTimeout(() => { revealActive = Math.max(0, revealActive - 1); syncBoard(); }, 3000 + 900);
       return true;
     },
     // King's Decree: a golden royal bloom sweeps the whole board center-out.
@@ -608,24 +713,31 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
       igniteRevealTiles(items, 2500, 'gold');
       return true;
     },
-    // War Horn: sound-wave rings ripple out + a gold board vignette pulses while ×2 is active.
+    // War Horn: a herald blows the horn at the board's edge — sound rings ripple out and
+    // the gold ×2 vignette pulses for the duration.
     warHorn() {
       warHornActive = true;
       activeBuffs.add('warHorn');
-      boardWave(scene, castSrc, { color: 'rgba(245,200,66,.5)', rings: 4 });
+      hornHerald(scene, { img: `${ASSETS.characters}knight/knight_triumphant.png`, horn: POWER_ICON('warHorn'), ms: 2200 });
+      setTimeout(() => boardWave(scene, castSrc, { color: 'rgba(245,200,66,.5)', rings: 4 }), 480);
       edgePulse(boardWrap, 10000);
       warHornBanner();
       setTimeout(() => { warHornActive = false; activeBuffs.delete('warHorn'); }, 10000);
       return true;
     },
-    // Holy Water: a droplet flies to each chained tile → splash, chains shatter (D9).
+    // Holy Water: the cup hovers over each chained tile and pours — golden glints rain
+    // down as a blessing, then the chains shatter (D9).
     holyWater() {
       const locked = match.tiles.filter((t) => t.locked);
       if (!locked.length) return false;
-      locked.forEach((t, k) => setTimeout(() => castProjectile(scene, castSrc, tileEls[t.index], {
-        icon: POWER_ICON('holyWater'), arc: 60,
-        onImpact: () => { t.locked = false; castImpact(scene, tileEls[t.index], { count: 10 }); burstAtEl(scene, tileEls[t.index], 12, 'shard'); syncBoard(); },
-      }), k * 110));
+      locked.forEach((t, k) => setTimeout(() => {
+        const c = tileCenter(t.index);
+        lightBeam(scene, { x: c.x, y: c.y - 150 }, c, { color: 'rgba(255,244,190,.75)', width: 26, ms: 700 });
+        pourOver(scene, tileEls[t.index], {
+          icon: POWER_ICON('holyWater'), ms: 700,
+          onDone: () => { t.locked = false; castImpact(scene, tileEls[t.index], { count: 10 }); burstAtEl(scene, tileEls[t.index], 12, 'shard'); syncBoard(); },
+        });
+      }, k * 260));
       match.locksRemaining = 0;
       return true;
     },
@@ -633,24 +745,48 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
   // Durational power-ups subject to the D11 "max 2 active / no stacking" rule.
   const ACTIVE_BUFFS = new Set(['shield', 'warHorn']);
 
-  // The 2×2 blast zone anchored at the tapped tile, clamped inside the grid (deduped so
-  // 1-row / 1-col boards still work).
+  // Visual grid geometry (audit B1): D8 swaps reorder DOM nodes while the model index
+  // stays the tile's identity — so all POSITIONAL math (bomb 2×2, spear cross) runs on
+  // the DOM order the player actually sees (pure helpers in mechanics.js, unit-tested).
+  function domOrder() {
+    return [...board.children].map((el) => +el.dataset.index).filter((n) => !Number.isNaN(n));
+  }
   function bombZone(idx) {
-    const cols = level.grid.cols, rows = Math.ceil(match.tiles.length / cols);
-    const r = Math.max(0, Math.min(Math.floor(idx / cols), rows - 2));
-    const c = Math.max(0, Math.min(idx % cols, cols - 2));
-    return [...new Set([r * cols + c, r * cols + c + 1, (r + 1) * cols + c, (r + 1) * cols + c + 1])]
-      .filter((i) => i < match.tiles.length);
+    return visualBombZone(domOrder(), level.grid.cols, idx);
   }
 
   // Player-aimed power-ups: which tiles are valid targets + what the hint chip says.
-  // (Bomb is the approved slice; Arrow/Spear/Sword join this map on replication.)
+  const hasPartner = (t) => match.tiles.some((o) =>
+    o.index !== t.index && !o.matched && !o.isDecoy && o.icon === t.icon);
   const AIM_POWERS = {
     bomb: {
       hint: 'Tap a tile — drop the Bomb there',
       targets: () => match.tiles.filter((t) => !t.matched).map((t) => t.index),
     },
+    arrow: {
+      hint: 'Tap a tile — the Arrow pierces it',
+      targets: () => match.tiles.filter((t) => !t.matched && !permaReveal.has(t.index)).map((t) => t.index),
+    },
+    spear: {
+      hint: 'Tap a tile — the Spear slices its row and column',
+      targets: () => match.tiles.filter((t) => !t.matched).map((t) => t.index),
+    },
+    sword: {
+      hint: 'Tap a tile — the Sword stabs it and its pair',
+      targets: () => match.tiles.filter((t) =>
+        !t.matched && !t.isDecoy && !permaReveal.has(t.index) && hasPartner(t)).map((t) => t.index),
+    },
+    raven: {
+      hint: 'Tap a tile — the Raven flies to its pair',
+      targets: () => match.tiles.filter((t) => !t.matched && !t.isDecoy && hasPartner(t)).map((t) => t.index),
+    },
   };
+  // Scene-relative centre of a tile (projectile endpoints).
+  function tileCenter(idx) {
+    const sr = scene.getBoundingClientRect();
+    const r = tileEls[idx].getBoundingClientRect();
+    return { x: r.left - sr.left + r.width / 2, y: r.top - sr.top + r.height / 2 };
+  }
 
   function enterAim(id) {
     const cfg = AIM_POWERS[id];
@@ -669,6 +805,7 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
     aiming.hintEl = hint;
     aiming.onKey = (e) => { if (e.key === 'Escape') cancelAim(); };
     document.addEventListener('keydown', aiming.onKey);
+    sfx('arm'); haptic('arm');
   }
 
   function cancelAim() {
@@ -685,6 +822,10 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
     if (!aiming.targets.has(index)) return;   // invalid target: ignore, stay in aim mode
     const id = aiming.id;
     cancelAim();
+    // Audit B2: hold tile movement through the strike's flight + impact window so the
+    // board can't shuffle under an airborne projectile.
+    revealActive += 1;
+    setTimeout(() => { revealActive = Math.max(0, revealActive - 1); }, 1400);
     const ok = EFFECTS[id](index);
     if (ok) consumePower(id);
   }
@@ -693,6 +834,7 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
   function consumePower(id) {
     usedPowerup = true;                  // forfeits the "no power-ups" coin bonus (D13)
     sfx('powerup');
+    haptic('power');
     gameState.save.inventory[id] -= 1;
     persistSave(adapter, gameState.save);
     bus.emit('powerup:used', { id });

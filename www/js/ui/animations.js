@@ -90,7 +90,7 @@ export function staggerIn(tileEls, cols) {
 // Fly a power-up icon from a scene-relative point `from` {x,y} to a target element, then run
 // onImpact. Honors reduced-motion (skips the flight, reveals immediately). A timeout fallback
 // guarantees onImpact even if the WAAPI finish event is throttled (headless / background).
-export function castProjectile(scene, from, toEl, { icon, ms = 440, arc = 80, spin = 0, stickMs = 0, onImpact } = {}) {
+export function castProjectile(scene, from, toEl, { icon, ms = 440, arc = 80, spin = 0, stickMs = 0, onImpact, faceTarget = false, flipX = false, trailColor } = {}) {
   const fire = onImpact || (() => {});
   if (reduced() || !toEl || !from) { fire(); return; }
   const sr = scene.getBoundingClientRect();
@@ -104,6 +104,12 @@ export function castProjectile(scene, from, toEl, { icon, ms = 440, arc = 80, sp
   const im = document.createElement('img');
   im.src = icon;
   im.addEventListener('error', () => { im.style.display = 'none'; });
+  // Sprite orientation: point along the flight vector (arrow/spear) or mirror a
+  // right-facing sprite when flying left (raven).
+  const t = [];
+  if (faceTarget) t.push(`rotate(${Math.atan2(dy, dx) * 180 / Math.PI}deg)`);
+  if (flipX && dx < 0) t.push('scaleX(-1)');
+  if (t.length) im.style.transform = t.join(' ');
   p.appendChild(im);
   p.style.left = x0 + 'px';
   p.style.top = y0 + 'px';
@@ -113,6 +119,7 @@ export function castProjectile(scene, from, toEl, { icon, ms = 440, arc = 80, sp
     const pr = p.getBoundingClientRect();
     const d = document.createElement('div');
     d.className = 'kt-cast-trail';
+    if (trailColor) d.style.background = `radial-gradient(circle, ${trailColor}, transparent 70%)`;
     d.style.left = (pr.left - sr.left + pr.width / 2) + 'px';
     d.style.top = (pr.top - sr.top + pr.height / 2) + 'px';
     d.addEventListener('animationend', () => d.remove(), { once: true });
@@ -296,8 +303,9 @@ export function irisBloom(scene, boardEl) {
   fxLayer(scene).appendChild(o);
 }
 
-// Horizontal streak sweeping left→right across a row, revealing tiles in its wake (Spear).
-export function streakReveal(scene, { tiles, reveal, hide, holdMs = 2800 } = {}) {
+// Streak sweeping across a line of tiles, revealing them in its wake (Spear).
+// Horizontal (left→right) by default; `vertical: true` sweeps top→bottom down a column.
+export function streakReveal(scene, { tiles, reveal, hide, holdMs = 2800, vertical = false } = {}) {
   if (!tiles || !tiles.length) return;
   if (reduced()) { tiles.forEach((t) => reveal && reveal(t)); setTimeout(() => tiles.forEach((t) => hide && hide(t)), holdMs); return; }
   const sr = scene.getBoundingClientRect();
@@ -305,19 +313,216 @@ export function streakReveal(scene, { tiles, reveal, hide, holdMs = 2800 } = {})
   const minX = Math.min(...rs.map((r) => r.left)), maxX = Math.max(...rs.map((r) => r.right));
   const yTop = Math.min(...rs.map((r) => r.top)), yBot = Math.max(...rs.map((r) => r.bottom));
   const bar = document.createElement('div');
-  bar.className = 'kt-streak';
+  bar.className = vertical ? 'kt-streak kt-streak-v' : 'kt-streak';
   bar.style.left = (minX - sr.left) + 'px';
   bar.style.top = (yTop - sr.top) + 'px';
-  bar.style.height = (yBot - yTop) + 'px';
-  bar.style.setProperty('--travel', (maxX - minX) + 'px');
+  if (vertical) {
+    bar.style.width = (maxX - minX) + 'px';
+    bar.style.setProperty('--travel', (yBot - yTop) + 'px');
+  } else {
+    bar.style.height = (yBot - yTop) + 'px';
+    bar.style.setProperty('--travel', (maxX - minX) + 'px');
+  }
   bar.addEventListener('animationend', () => bar.remove(), { once: true });
   fxLayer(scene).appendChild(bar);
-  const span = Math.max(1, maxX - minX);
+  const span = Math.max(1, vertical ? (yBot - yTop) : (maxX - minX));
   tiles.forEach((t) => {
     const r = t.el.getBoundingClientRect();
-    const delay = ((r.left - minX) / span) * 360;
+    const delay = ((vertical ? (r.top - yTop) : (r.left - minX)) / span) * 360;
     setTimeout(() => { reveal && reveal(t); setTimeout(() => hide && hide(t), holdMs); }, delay);
   });
+}
+
+// Camera punch-in (owner-delegated design 2026-07-09): zoom the positioned host toward
+// a focus element, then spring back. Proper use — short punch-ins (≤160ms in) at impact
+// moments; a slow sustained push only for long reveals (Torch); NEVER during aim mode
+// (it would obscure target choice). No-op under reduced-motion.
+export function boardZoom(host, focusEl, { scale = 1.08, inMs = 130, holdMs = 60, outMs = 380 } = {}) {
+  if (reduced() || !host || !focusEl) return;
+  const hr = host.getBoundingClientRect();
+  const fr = focusEl.getBoundingClientRect();
+  if (!hr.width || !hr.height) return;
+  const ox = Math.max(0, Math.min(100, ((fr.left + fr.width / 2 - hr.left) / hr.width) * 100));
+  const oy = Math.max(0, Math.min(100, ((fr.top + fr.height / 2 - hr.top) / hr.height) * 100));
+  const prev = host.style.transformOrigin;
+  host.style.transformOrigin = `${ox}% ${oy}%`;
+  const total = inMs + holdMs + outMs;
+  const a = host.animate([
+    { transform: 'scale(1)', offset: 0 },
+    { transform: `scale(${scale})`, offset: inMs / total },
+    { transform: `scale(${scale})`, offset: (inMs + holdMs) / total },
+    { transform: 'scale(1)', offset: 1 },
+  ], { duration: total, easing: 'cubic-bezier(.3,0,.2,1)' });
+  a.onfinish = () => { host.style.transformOrigin = prev; };
+}
+
+// A lone expanding ring at an element (lighter than castImpact — no shake/burst/flash).
+export function impactRing(scene, el, color = 'rgba(255,246,207,.95)') {
+  if (!el || reduced()) return;
+  const sr = scene.getBoundingClientRect(), r = el.getBoundingClientRect();
+  const ring = document.createElement('div');
+  ring.className = 'kt-impact-ring';
+  ring.style.borderColor = color;
+  ring.style.left = (r.left - sr.left + r.width / 2) + 'px';
+  ring.style.top = (r.top - sr.top + r.height / 2) + 'px';
+  ring.addEventListener('animationend', () => ring.remove(), { once: true });
+  fxLayer(scene).appendChild(ring);
+}
+
+// A glowing light ray flashing from one scene point to another (tracers, beams,
+// blessing shafts). Pure light — no sprite. Fades in fast, out slower.
+export function lightBeam(scene, from, to, { color = 'rgba(255,230,150,.9)', width = 6, ms = 320 } = {}) {
+  if (reduced() || !from || !to) return;
+  const len = Math.hypot(to.x - from.x, to.y - from.y);
+  const ang = Math.atan2(to.y - from.y, to.x - from.x) * 180 / Math.PI;
+  const b = document.createElement('div');
+  b.className = 'kt-beam';
+  b.style.left = from.x + 'px';
+  b.style.top = from.y + 'px';
+  b.style.width = len + 'px';
+  b.style.height = width + 'px';
+  b.style.transform = `translateY(-50%) rotate(${ang}deg)`;
+  b.style.background = `linear-gradient(90deg, transparent, ${color} 30%, ${color} 70%, transparent)`;
+  b.style.animationDuration = ms + 'ms';
+  b.addEventListener('animationend', () => b.remove(), { once: true });
+  fxLayer(scene).appendChild(b);
+}
+
+// A soft light bar sweeping across the whole board (Eagle Eye scan).
+export function lightSweep(scene, boardEl, { color = 'rgba(255,240,190,.55)', ms = 520 } = {}) {
+  if (reduced() || !boardEl) return;
+  const sr = scene.getBoundingClientRect();
+  const br = boardEl.getBoundingClientRect();
+  const s = document.createElement('div');
+  s.className = 'kt-sweep';
+  s.style.left = (br.left - sr.left) + 'px';
+  s.style.top = (br.top - sr.top) + 'px';
+  s.style.height = br.height + 'px';
+  s.style.background = `linear-gradient(90deg, transparent, ${color}, transparent)`;
+  s.style.setProperty('--travel', br.width + 'px');
+  s.style.animationDuration = ms + 'ms';
+  s.addEventListener('animationend', () => s.remove(), { once: true });
+  fxLayer(scene).appendChild(s);
+}
+
+// Floating bonus text (e.g. "+15s") that pops at a point, then arcs into a target
+// element while shrinking — read as "absorbed" by the target (Hourglass → time HUD).
+export function bonusFloat(scene, toEl, { text = '+15s', color = '#7ef78a', at } = {}) {
+  if (reduced() || !toEl) return;
+  const sr = scene.getBoundingClientRect();
+  const tr = toEl.getBoundingClientRect();
+  const x0 = at ? at.x : tr.left - sr.left + tr.width / 2;
+  const y0 = at ? at.y : tr.top - sr.top + tr.height / 2 + 46;
+  const dx = (tr.left - sr.left + tr.width / 2) - x0;
+  const dy = (tr.top - sr.top + tr.height / 2) - y0;
+  const b = document.createElement('div');
+  b.className = 'kt-bonus-float';
+  b.textContent = text;
+  b.style.left = x0 + 'px';
+  b.style.top = y0 + 'px';
+  b.style.color = color;
+  fxLayer(scene).appendChild(b);
+  b.animate([
+    { transform: 'translate(-50%,-50%) scale(.4)', opacity: 0, offset: 0 },
+    { transform: 'translate(-50%,-50%) scale(1.25)', opacity: 1, offset: 0.3 },
+    { transform: 'translate(-50%,-50%) scale(1.25)', opacity: 1, offset: 0.55 },
+    { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(.3)`, opacity: 0.2, offset: 1 },
+  ], { duration: 950, easing: 'cubic-bezier(.4,0,.6,1)', fill: 'forwards' }).onfinish = () => b.remove();
+}
+
+// Eagle Eye: stamp a matching sigil on both tiles of each pair — same symbol per pair,
+// different hue per pair — with a staggered pop and sparkle, fading after `ms`.
+export function pairMarks(scene, pairs, ms = 5000) {
+  if (reduced() || !pairs.length) return;
+  const marks = [];
+  pairs.forEach((pair, k) => {
+    pair.forEach((el) => {
+      if (!el) return;
+      const m = document.createElement('div');
+      m.className = 'kt-pairmark';
+      m.style.setProperty('--hue', (k * 47) % 360 + 'deg');
+      m.style.animationDelay = (k * 90) + 'ms';
+      m.textContent = ['✦', '♦', '✚', '★', '⬟', '❖', '▲', '☘', '♠', '⬢', '✿', '◆'][k % 12];
+      el.appendChild(m);
+      marks.push(m);
+      setTimeout(() => burstAtEl(scene, el, 6, 'spark'), k * 90 + 120);
+    });
+  });
+  setTimeout(() => marks.forEach((m) => { m.classList.add('out'); setTimeout(() => m.remove(), 300); }), ms);
+}
+
+// Holy Water: the cup hovers above a tile, tilts to pour, and golden glints rain down
+// onto it for the duration; onDone fires as the pour finishes (chains break there).
+export function pourOver(scene, el, { icon, ms = 700, onDone } = {}) {
+  const fire = onDone || (() => {});
+  if (reduced() || !el) { fire(); return; }
+  const sr = scene.getBoundingClientRect();
+  const r = el.getBoundingClientRect();
+  const cx = r.left - sr.left + r.width / 2;
+  const topY = r.top - sr.top - 14;
+  const cup = document.createElement('div');
+  cup.className = 'kt-cast kt-pour';
+  cup.innerHTML = `<img src="${icon}" alt="">`;
+  cup.style.left = cx + 'px';
+  cup.style.top = topY + 'px';
+  fxLayer(scene).appendChild(cup);
+  const drip = setInterval(() => {
+    const g = document.createElement('div');
+    g.className = 'kt-glint';
+    g.style.left = (cx + (Math.random() * 26 - 13)) + 'px';
+    g.style.top = topY + 8 + 'px';
+    g.style.setProperty('--fall', (r.height * 0.8 + Math.random() * 14) + 'px');
+    g.addEventListener('animationend', () => g.remove(), { once: true });
+    fxLayer(scene).appendChild(g);
+  }, 46);
+  setTimeout(() => {
+    clearInterval(drip);
+    cup.classList.add('out');
+    setTimeout(() => cup.remove(), 240);
+    fire();
+  }, ms);
+}
+
+// Bomb aftermath: dark debris chunks thrown ballistically from the blast, tumbling,
+// landing, then fading — cleaned up automatically.
+export function debrisFall(scene, at, count = 12) {
+  if (reduced() || !at) return;
+  const layer = fxLayer(scene);
+  for (let i = 0; i < count; i++) {
+    const d = document.createElement('div');
+    d.className = 'kt-debris';
+    d.style.left = at.x + 'px';
+    d.style.top = at.y + 'px';
+    layer.appendChild(d);
+    const ang = Math.random() * Math.PI;                     // upward half
+    const v = 46 + Math.random() * 72;
+    const dx = Math.cos(ang) * v * (Math.random() < 0.5 ? -1 : 1);
+    const up = -(30 + Math.random() * 55);
+    const down = 60 + Math.random() * 40;
+    const rot = (Math.random() * 520 - 260);
+    d.animate([
+      { transform: 'translate(-50%,-50%) rotate(0deg)', opacity: 1, offset: 0 },
+      { transform: `translate(calc(-50% + ${dx * 0.6}px), calc(-50% + ${up}px)) rotate(${rot * 0.5}deg)`, opacity: 1, offset: 0.38 },
+      { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${down}px)) rotate(${rot}deg)`, opacity: 1, offset: 0.82 },
+      { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${down}px)) rotate(${rot}deg)`, opacity: 0, offset: 1 },
+    ], { duration: 1100 + Math.random() * 300, easing: 'cubic-bezier(.3,.4,.6,1)', fill: 'forwards' }).onfinish = () => d.remove();
+  }
+}
+
+// War Horn: a herald (character art) slides into the lower corner, blows the horn —
+// sound rings ripple from the horn — then slides back out.
+export function hornHerald(scene, { img, horn, ms = 2200 } = {}) {
+  if (reduced()) return;
+  const h = document.createElement('div');
+  h.className = 'kt-horn-herald';
+  h.innerHTML = `<img class="who" src="${img}" alt=""><img class="horn" src="${horn}" alt="">`;
+  scene.appendChild(h);
+  const sr = scene.getBoundingClientRect();
+  setTimeout(() => {
+    const hr = h.getBoundingClientRect();
+    boardWave(scene, { x: hr.right - sr.left - 14, y: hr.top - sr.top + 30 }, { color: 'rgba(245,200,66,.6)', rings: 4 });
+  }, 480);
+  setTimeout(() => { h.classList.add('out'); setTimeout(() => h.remove(), 420); }, ms);
 }
 
 // Pulsing gold inset vignette on a (positioned) host for `ms` (War Horn duration).

@@ -43,6 +43,10 @@ const VOICES = {
   dice:     { type: 'square',   f: 420, to: 300, d: 0.09, g: 0.14 },
   fanfare:  { type: 'triangle', f: 784, to: 1568, d: 0.45, g: 0.26 },
   mail:     { type: 'sine',     f: 600, to: 880, d: 0.14, g: 0.16 },
+  // impact-beat voices (AV-sync pass 2026-07-09): fired at the animation's impact frame
+  boom:     { type: 'square',   f: 130, to: 36,  d: 0.48, g: 0.32 },  // bomb detonation
+  thud:     { type: 'triangle', f: 220, to: 90,  d: 0.11, g: 0.24 },  // arrow/sword strike lands
+  arm:      { type: 'sine',     f: 840, to: 980, d: 0.05, g: 0.12 },  // aim mode armed
 };
 
 export function sfx(id) {

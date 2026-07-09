@@ -4,15 +4,15 @@ import * as stamina from '../systems/stamina.js';
 import { COIN_SOURCES } from '../systems/economy.js';
 
 const MENU_ICON = 'M4 7h16M4 12h16M4 17h16';
-// Placeholder nav glyphs until dedicated art lands (Smith / Mail — see spec §10).
-const ANVIL_SVG = '<svg class="ic" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19h22a8 8 0 0 1-6 7l2 5H14l2-5a7 7 0 0 1-7-7z"/><path d="M31 19l6-3v6"/><path d="M16 36h16l2 4H14z"/></svg>';
-const MAIL_SVG = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>';
+// Dedicated nav art (2026-07-08): parchment-letter Mail and anvil Smith icons join the
+// ui_nav_* family, replacing the placeholder SVG glyphs.
+const MAIL_IMG = `<img class="kt-mail-ic" src="assets/images/ui/ui_nav_mail.png" alt="">`;
 
 // Right rail = journey/economy; left rail = recognition. Mail lives in the top bar.
 const RAIL_RIGHT = [
   { key: 'daily', label: 'Quests', icon: 'ui_nav_quests' },
   { key: 'inn', label: 'The Inn', icon: 'ui_nav_inn' },
-  { key: 'blacksmith', label: 'Smith', svg: ANVIL_SVG },
+  { key: 'blacksmith', label: 'Smith', icon: 'ui_nav_smith' },
 ];
 const RAIL_LEFT = [
   { key: 'glory', label: 'Glory', icon: 'ui_nav_glory' },
@@ -53,7 +53,7 @@ export function createHomeScene({ gameState, onPlay, onSection, onMenu, onMap, o
         `<div class="kt-ident-txt"><b>${name}</b><span class="kt-rank">${rank.name}</span></div>` +
       `</div>` +
       `<div class="kt-topbtns">` +
-        `<button type="button" class="kt-mail-btn" id="kt-mail" aria-label="Mail">${MAIL_SVG}${unread ? `<span class="kt-mail-badge">${unread > 9 ? '9+' : unread}</span>` : ''}</button>` +
+        `<button type="button" class="kt-mail-btn" id="kt-mail" aria-label="Mail">${MAIL_IMG}${unread ? `<span class="kt-mail-badge">${unread > 9 ? '9+' : unread}</span>` : ''}</button>` +
         `<button type="button" class="kt-icon-btn" id="kt-settings" aria-label="Menu"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="${MENU_ICON}"/></svg></button>` +
       `</div>` +
     `</div>` +

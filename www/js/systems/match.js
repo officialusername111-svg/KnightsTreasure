@@ -87,6 +87,31 @@ export function resolveMismatch(state) {
   return next;
 }
 
+// Power-up auto-match (owner decision 2026-07-08): complete a known pair directly,
+// bypassing the firstPick/locked tap flow — used when a power-up holds both tiles of a
+// real pair face-up. Preserves all match bookkeeping (count, progressive unlock, win).
+export function matchPair(state, i, j) {
+  const a = state.tiles[i], b = state.tiles[j];
+  if (!a || !b || a.matched || b.matched || a.locked || b.locked ||
+      a.isDecoy || b.isDecoy || i === j || a.icon !== b.icon) {
+    return { state, result: 'ignored' };
+  }
+  const next = clone(state);
+  next.tiles[i].matched = true; next.tiles[i].faceUp = true;
+  next.tiles[j].matched = true; next.tiles[j].faceUp = true;
+  if (next.firstPick === i || next.firstPick === j) next.firstPick = null;
+  next.matchedPairs += 1;
+  if (next.locksRemaining > 0) {
+    next.matchesSinceUnlock += 1;
+    if (next.matchesSinceUnlock >= next.unlockAfterMatches) {
+      next.matchesSinceUnlock = 0;
+      const lk = next.tiles.find((t) => t.locked);
+      if (lk) { lk.locked = false; next.locksRemaining -= 1; }
+    }
+  }
+  return { state: next, result: next.matchedPairs === next.totalPairs ? 'win' : 'match' };
+}
+
 // Holy Water (D2/D9): strip every chain at once. Guarantees a locked level stays
 // completable without spending coins. Returns a new state.
 export function removeAllLocks(state) {

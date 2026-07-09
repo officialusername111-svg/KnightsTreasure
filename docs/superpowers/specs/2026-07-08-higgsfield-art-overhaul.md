@@ -1,5 +1,90 @@
 # Higgsfield Art Overhaul — Decision Record (2026-07-08)
 
+## Addendum — gameplay & presentation decisions (owner, batch of 2026-07-08 evening)
+
+1. **Auto-match revealed pairs:** when a power-up permanently reveals both tiles of a real
+   pair (Arrow/Sword/Bomb), the pair completes automatically through `matchPair()` in
+   `www/js/systems/match.js` — combo, War Horn bonus, and win detection all apply.
+2. **Spear = cross reveal:** player-aimed; slices BOTH the row and column of the picked tile
+   (temporary 3s reveal). Supersedes the row-only D-decision.
+3. **Player-aimed power-ups:** Raven (flies picked tile → its pair), Arrow, Spear, Sword
+   (stabs picked tile, then its pair 0.5s later), Bomb. Aim-mode: dim board, pulsing valid
+   targets, hint chip, cancel via re-tap/✕/Escape; inventory spent only on a valid strike.
+4. **Hourglass stays +15s** — green "+15s" float absorbed into the time HUD is visual only.
+5. **Shield HUD swap:** while frozen, the timer value shows a blinking shield
+   (`hud.setFrozen`); `setTime` is held until unfreeze.
+6. **Tutorial NPC is boxless:** full-figure cutout beside the speech bubble (object-fit:
+   contain), no frame/crop; the bust-crop portraitFit is intentionally not applied there.
+7. **Story dialogue depth:** backdrop blurred (7px) + zoomed (1.07); speaker scales 1.1.
+8. **Tile style v2 (pilot approved-pending):** simple thin gold frame, inset color keyed to
+   each tile's subject (NOT theme-locked crimson). Supersedes the D16 crimson-inset rule;
+   the identical-frame rule stays. Full 43-tile regen deferred to credit top-up; must use a
+   canonical-frame reference image + explicit "frame always gold" clause (pilot showed frame
+   drift + margin regression without it). Pilot: `.claude/assets/_HIGGSFIELD_OVERHAUL/tiles_v2_pilot/`.
+9. **Nav art:** dedicated `ui_nav_mail` / `ui_nav_smith` icons replace the placeholder SVGs.
+
+## Addendum 4 — ideas adopted from the animation-research prompt (owner-approved 2026-07-09)
+
+Source: owner's IMPROVE-PROMPT.md (written for the old single-file prototype; translated to
+this build — most of its axes were already implemented here). Adopted, all five approved:
+
+16. **Haptics** — `www/js/systems/haptics.js`: navigator.vibrate patterns per event (flip
+    tick, match pulse, mismatch buzz, win celebration, bomb thud, combo run, arm click);
+    Settings → "Vibration" toggle (`save.settings.haptics`, default ON); off under
+    reduced-motion; silent no-op where unsupported.
+17. **AV sync** — impact sounds fire on the impact FRAME, not at cast: new procedural
+    voices `boom` (bomb hit-stop release), `thud` (arrow/sword strikes), `arm` (aim mode);
+    combo ≥5 plays the fanfare with the shudder.
+18. **Colorblind-safe cues** — matched tiles carry a persistent ✓ badge, mismatches flash
+    an ✕ while shown (pure CSS ::after; meaning no longer rides on color alone).
+19. **Particle textures** — 3 Higgsfield glow sprites (gold spark, ember mote, radial glow,
+    3cr, black-backdrop + mix-blend-mode:screen) replace the CSS-gradient particles, with
+    the old gradient still painting first as the load-failure fallback.
+20. **"New at the Blacksmith" toast** — stage advancement now surfaces newly unlockable
+    power-ups on the victory overlay (previously silent).
+Rejected from the prompt as not applicable here: ≤1.5MB asset budget (superseded by the
+owner's full-art-set decision), relic-bar state model (tray/inventory exists), demo.html
+work, sprite-sheet walk cycles, generated narration/ambient audio (deferred — credits).
+
+## Addendum 3 — zoom & impact juice + tile restyle v2 batch (2026-07-09, owner-delegated
+## creative pass: "be creative, I'll check later" — decisions recorded per CLAUDE.md rule 2)
+
+13. **Camera zoom language (`boardZoom`):** punch-ins anchored at the impact point with a
+    spring release. Rules of use: ≤160ms in for impacts; slow sustained push only for long
+    reveals (Torch 420ms in / 1.3s hold); never during aim mode; no-op under reduced-motion.
+    Wired: Bomb 1.12 (with hit-stop), Shield bash 1.08, Arrow/Sword 1.05 per strike,
+    Raven landing 1.04, Torch push 1.04, combo ≥3 match punch 1.04.
+14. **Tile impact juice:** press squash on tap (`scale:.95` via the `scale` property so the
+    3D flip transform is untouched); mismatch adds a red glow to the existing shake; every
+    match emits a gold impact ring on both tiles; combo ≥5 adds a screen shudder; win plays
+    a left-to-right pop wave across the cleared board before the results overlay.
+15. **Tile restyle v2 executed at 1K/Lite:** canonical wolf tile (nano_banana_2, 2K, gold
+    frame locked) + 42 frame-referenced derivatives via nano_banana_2_lite @1cr (tiles ship
+    at 360px, so 1K sources are lossless in practice). Per-subject inset palettes recorded
+    in the generation script. Budget: 44cr of the 68 available.
+
+## Addendum 2 — refined effects + whole-game audit (owner, 2026-07-08 late)
+
+10. **Projectile-and-light effect language:** power-ups fire real sprites, not UI icons —
+    `www/assets/images/fx/` (fx_raven_fly, fx_arrow, fx_spear, fx_sword_stab; Higgsfield,
+    ~8cr). `castProjectile` gained `faceTarget` (rotate along flight vector), `flipX`, and
+    `trailColor`; new `lightBeam` / `lightSweep` primitives add tracers (Arrow/Spear), a
+    green absorb beam (Hourglass), a blessing shaft (Holy Water), and a board scan
+    (Eagle Eye).
+11. **Tap-the-twin completes the pair (owner fix):** flipping a tile whose partner is
+    permanently revealed auto-matches at once (shared `celebrateMatch` path in game.js).
+12. **Audit fixes (approved):**
+    - **B1** — positional power-up geometry (bomb 2×2, spear cross) now runs on the VISUAL
+      grid: D8 swaps reorder DOM slots while model indices stay identities, so index math
+      diverged from what the player sees. Pure `visualBombZone` / `visualCross` in
+      mechanics.js, unit-tested incl. the swapped-board case.
+    - **B2** — tile movement pauses during aim mode and for 1.4s around an aimed strike.
+    - **B3** — `win()`/`lose()` clear a pending mismatch timer (post-level state race).
+    Audit also verified sound: permaReveal identity across swaps (pinned), Shield/Hourglass
+    freeze interplay, auto-match vs mismatch window, War Horn ×2, Android timer freeze,
+    aim cleanup on level end. Accepted as-is: bomb may reveal a chain-locked tile's face
+    (info leak, no match) — deliberate power-up value.
+
 **Owner decision:** regenerate ALL 188 existing final assets (characters, backgrounds, badges,
 titles, tiles, UI, store) through Higgsfield AI, restyled to match the knight character sheet at
 `www/assets/images/reference/knight_reference.webp`. This supersedes the per-asset art of

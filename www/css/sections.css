@@ -175,7 +175,10 @@
 
 /* ===== Cinematic NPC dialogue (VN-style: lit speaker, dimmed listener, typewriter) ===== */
 .kt-story { position:absolute; inset:0; z-index:50; overflow:hidden; background:#05060a; cursor:pointer; }
-.kt-story-bg { position:absolute; inset:0; background-size:cover; background-position:center; filter:brightness(.5) saturate(.9); }
+/* Cinematic depth (owner decision 2026-07-08): backdrop blurred + slightly zoomed so
+   the conversation reads in sharp focus against it (scale hides the blur's edge bleed). */
+.kt-story-bg { position:absolute; inset:0; background-size:cover; background-position:center;
+  filter:brightness(.5) saturate(.9) blur(7px); transform:scale(1.07); }
 .kt-story-bg::after { content:''; position:absolute; inset:0; background:radial-gradient(ellipse at 50% 58%, transparent 28%, rgba(4,4,10,.72)); }
 .kt-story-bar { position:absolute; left:0; right:0; height:9%; background:#000; z-index:4; }
 .kt-story-bar.top { top:0; } .kt-story-bar.bottom { bottom:0; }
@@ -200,8 +203,10 @@
    box never clips it into a visible rectangle behind the speaker. */
 .kt-story-char.speaking::before { content:''; position:absolute; inset:-4% -8% -2%; z-index:-1;
   background:radial-gradient(ellipse closest-side at 50% 30%, rgba(245,200,66,.34), transparent 100%); }
-.kt-story-char.left.speaking { transform:translateX(0) scale(1.02); }
-.kt-story-char.right.speaking { transform:translateX(0) scale(1.02); }
+/* speaker zooms in noticeably (owner: "zoomed"); origin low so the figure grows upward */
+.kt-story-char { transform-origin:50% 88%; }
+.kt-story-char.left.speaking { transform:translateX(0) scale(1.1); }
+.kt-story-char.right.speaking { transform:translateX(0) scale(1.1); }
 @keyframes kt-story-rise { from{opacity:0;transform:translateY(20px);} to{opacity:1;} }
 .kt-story-box { position:absolute; left:50%; bottom:15%; transform:translateX(-50%); width:min(640px,66%); z-index:5;
   background:linear-gradient(180deg,#efe6cf,#ddcfa6); border-radius:14px; padding:20px 24px; min-height:92px;

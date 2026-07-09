@@ -1,6 +1,7 @@
 import { persistSave } from '../core/save.js';
 import { APP_VERSION } from '../data/config.js';
 import { configure as audioConfigure } from '../systems/audio.js';
+import { setHaptics } from '../systems/haptics.js';
 import { showInfo, sectionTop, promptModal, toast } from './modal.js';
 import { redeemCode } from '../systems/codes.js';
 import { showTutorial } from './tutorial.js';
@@ -23,6 +24,7 @@ export function createSettingsScene({ gameState, adapter, onBack, onReplayTutori
   const save = gameState.save;
   const st = save.settings || (save.settings = { sound: true, music: true, language: 'EN', fanfare: true });
   if (st.fanfare === undefined) st.fanfare = true;
+  if (st.haptics === undefined) st.haptics = true;
 
   const scene = document.createElement('div');
   scene.id = 'kt-settings-scene';
@@ -40,6 +42,7 @@ export function createSettingsScene({ gameState, adapter, onBack, onReplayTutori
         `<button type="button" class="kt-set-row" id="set-sound"><span class="ic">${ICON.sound}</span><span class="t">Sound effects</span>${sw(st.sound)}</button>` +
         `<button type="button" class="kt-set-row" id="set-music"><span class="ic">${ICON.music}</span><span class="t">Music</span>${sw(st.music)}</button>` +
         `<button type="button" class="kt-set-row" id="set-fanfare"><span class="ic">${ICON.fanfare}</span><span class="t">Celebrations<small>Confetti & fanfare on wins</small></span>${sw(st.fanfare)}</button>` +
+        `<button type="button" class="kt-set-row" id="set-haptics"><span class="ic">${ICON.sound}</span><span class="t">Vibration<small>Haptic feedback on taps & matches</small></span>${sw(st.haptics)}</button>` +
       `</div>` +
       `<div class="kt-set-group">` +
         `<div class="kt-set-gtitle">Game</div>` +
@@ -69,11 +72,13 @@ export function createSettingsScene({ gameState, adapter, onBack, onReplayTutori
       row.querySelector('.kt-sw').classList.toggle('off', !st[key]);
       persist();
       audioConfigure(st);
+      setHaptics(st.haptics !== false);
     });
   };
   bindToggle('#set-sound', 'sound');
   bindToggle('#set-music', 'music');
   bindToggle('#set-fanfare', 'fanfare');
+  bindToggle('#set-haptics', 'haptics');
 
   const seg = scene.querySelector('#set-lang');
   seg.querySelectorAll('button').forEach((b) =>
