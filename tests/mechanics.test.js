@@ -50,6 +50,38 @@ describe('chooseLocked', () => {
   });
 });
 
+import { pickWildcardCandidate, visualOrthogonalNeighbors } from '../www/js/systems/mechanics.js';
+
+describe('pickWildcardCandidate', () => {
+  const board = tiles([{}, { matched: true }, { faceUp: true }, { locked: true }, { isDecoy: true }, {}]);
+
+  it('picks only from face-down, unmatched, unlocked, non-decoy tiles', () => {
+    const idx = pickWildcardCandidate(board, () => 0);
+    expect([0, 5]).toContain(idx);
+  });
+  it('returns null when nothing is eligible', () => {
+    expect(pickWildcardCandidate(tiles([{ matched: true }, { locked: true }]))).toBeNull();
+  });
+});
+
+describe('visualOrthogonalNeighbors', () => {
+  const identity = [0,1,2,3,4,5,6,7,8,9,10,11]; // 4 cols x 3 rows, unswapped
+
+  it('returns up/down/left/right on an interior tile', () => {
+    expect(visualOrthogonalNeighbors(identity, 4, 5).sort((a,b)=>a-b)).toEqual([1,4,6,9]);
+  });
+  it('clamps at the top-left corner (no up, no left)', () => {
+    expect(visualOrthogonalNeighbors(identity, 4, 0).sort((a,b)=>a-b)).toEqual([1,4]);
+  });
+  it('clamps at the bottom-right corner (no down, no right)', () => {
+    expect(visualOrthogonalNeighbors(identity, 4, 11).sort((a,b)=>a-b)).toEqual([7,10]);
+  });
+  it('follows a swapped tile to its visual slot', () => {
+    const swapped = [5,1,2,3,4,0,6,7,8,9,10,11]; // model 0 now sits at visual slot 5
+    expect(visualOrthogonalNeighbors(swapped, 4, 0).sort((a,b)=>a-b)).toEqual([1,4,6,9]);
+  });
+});
+
 import { MECHANIC_UNLOCKS, unlockedMechanics } from '../www/js/data/mechanics.js';
 
 describe('unlockedMechanics', () => {

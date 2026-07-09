@@ -39,3 +39,27 @@ export function chooseLocked(tiles, lockedCount = 0, rng = Math.random) {
   }
   return ids.slice(0, Math.min(lockedCount, ids.length));
 }
+
+// Combo Streak Wildcard (2026-07-09 spec, §2) — random eligible spawn target. Pure;
+// rng injectable, same convention as chooseSwaps/chooseLocked above.
+export function pickWildcardCandidate(tiles, rng = Math.random) {
+  const pool = tiles.filter((t) => !t.matched && !t.faceUp && !t.locked && !t.isDecoy);
+  if (!pool.length) return null;
+  return pool[Math.floor(rng() * pool.length)].index;
+}
+
+// Chain Reveal Ripple (2026-07-09 spec, §3) — the up/down/left/right neighbors of a
+// tile's VISUAL slot, same domOrder/cols contract as visualBombZone/visualCross above.
+// Unlike those, this never dedupes across an anchor since a single tile has at most 4
+// orthogonal neighbors already-distinct by construction.
+export function visualOrthogonalNeighbors(domOrder, cols, anchorModelIdx) {
+  const total = domOrder.length, rows = Math.ceil(total / cols);
+  const v = Math.max(0, domOrder.indexOf(anchorModelIdx));
+  const r = Math.floor(v / cols), c = v % cols;
+  const out = [];
+  if (r > 0) out.push(domOrder[v - cols]);
+  if (r < rows - 1 && v + cols < total) out.push(domOrder[v + cols]);
+  if (c > 0) out.push(domOrder[v - 1]);
+  if (c < cols - 1 && v + 1 < total) out.push(domOrder[v + 1]);
+  return out;
+}
