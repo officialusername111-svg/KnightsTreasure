@@ -3,7 +3,7 @@ import { chooseSwaps, visualBombZone, visualCross } from '../systems/mechanics.j
 import { computeStars, computeScore, mistakePenalty } from '../systems/scoring.js';
 import { recordLevelResult } from '../core/state.js';
 import { persistSave } from '../core/save.js';
-import { ASSETS, TEXT } from '../data/config.js';
+import { ASSETS, TEXT, STAGE_BG } from '../data/config.js';
 import { tilePoolForStage } from '../data/tiles.js';
 import { ITEMS, POWERUPS } from '../data/items.js';
 import { rankFor } from '../systems/ranks.js';
@@ -71,7 +71,8 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
   boardWrap.id = 'kt-board-wrap';
   // Absolute URL: a relative url() inside a CSS custom property resolves against the
   // stylesheet that consumes it (/css/), not the document — which 404s. (See home.js.)
-  boardWrap.style.setProperty('--bg-forest', `url("${new URL(ASSETS.bgForest, document.baseURI).href}")`);
+  const stageBg = STAGE_BG[level.stage] || ASSETS.bgForest;
+  boardWrap.style.setProperty('--bg-forest', `url("${new URL(stageBg, document.baseURI).href}")`);
   const board = document.createElement('div');
   board.id = 'kt-board';
   board.style.gridTemplateColumns = `repeat(${level.grid.cols}, 1fr)`;
