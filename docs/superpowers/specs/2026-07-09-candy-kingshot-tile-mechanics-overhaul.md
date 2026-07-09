@@ -162,10 +162,10 @@ including its `prefers-reduced-motion` no-op.
 ## 6. Asset rollout (Higgsfield)
 
 **Pilot (this initiative's first implementation step, not part of this design phase):**
-- `tile_sword` — canonical frameless face, full `nano_banana_2` generation (2K, 2cr), establishes
+- `tile_dagger` — canonical frameless face, full `nano_banana_2` generation (2K, 2cr), establishes
   the new silhouette style as the reference for every other face.
 - `tile_chalice`, `tile_gem`, `tile_dragon` — `nano_banana_2_lite` (1cr each) referencing the
-  canonical `tile_sword` for style consistency, chosen to span visually distinct silhouette
+  canonical `tile_dagger` for style consistency, chosen to span visually distinct silhouette
   families (weapon, vessel, gem, creature).
 - `tile_wildcard` — new subject, `nano_banana_2_lite` (1cr) referencing the canonical face.
 - `bg_stage1_forest` — regenerated in the new style, `nano_banana_2` (2K, 2cr).

@@ -35,7 +35,7 @@
 - `tests/match.test.js` — tests for `spawnWildcard`/`matchWildcard`, including the winnability regression test.
 
 **Asset files (Task 5, generated not hand-written):**
-- `www/assets/images/tiles/tile_sword.png`, `tile_chalice.png`, `tile_gem.png`, `tile_dragon.png` — regenerated frameless.
+- `www/assets/images/tiles/tile_dagger.png`, `tile_chalice.png`, `tile_gem.png`, `tile_dragon.png` — regenerated frameless.
 - `www/assets/images/tiles/tile_wildcard.png` — new subject.
 - `www/assets/images/backgrounds/bg_stage1_forest.png` — regenerated.
 
@@ -443,17 +443,17 @@ git commit -m "fix: wire per-stage board backdrop and add a drift parallax layer
 ### Task 5: Higgsfield pilot asset generation
 
 **Files:**
-- Create (generated, not hand-written): `www/assets/images/tiles/tile_sword.png`, `tile_chalice.png`, `tile_gem.png`, `tile_dragon.png`, `tile_wildcard.png`, `www/assets/images/backgrounds/bg_stage1_forest.png`
+- Create (generated, not hand-written): `www/assets/images/tiles/tile_dagger.png`, `tile_chalice.png`, `tile_gem.png`, `tile_dragon.png`, `tile_wildcard.png`, `www/assets/images/backgrounds/bg_stage1_forest.png`
 
 This task has no code and no automated test — it is asset generation, verified visually. Do not attempt to write a vitest test for it.
 
 - [ ] **Step 1: Generate the canonical frameless tile face**
 
-Use the `higgsfield-generate` skill (model `nano_banana_2`, 2K) to regenerate `tile_sword` as a **frameless, transparent-background cutout**: the sword silhouette only, no square/circle border, no baked frame, sized so the sword fills most of the frame with a small margin, glossy stylized-3D rendering consistent with `www/assets/images/reference/knight_reference.webp`. Save to `www/assets/images/tiles/tile_sword.png`, replacing the current framed version.
+Use the `higgsfield-generate` skill (model `nano_banana_2`, 2K) to regenerate `tile_dagger` as a **frameless, transparent-background cutout**: the sword silhouette only, no square/circle border, no baked frame, sized so the sword fills most of the frame with a small margin, glossy stylized-3D rendering consistent with `www/assets/images/reference/knight_reference.webp`. Save to `www/assets/images/tiles/tile_dagger.png`, replacing the current framed version.
 
 - [ ] **Step 2: Generate the remaining pilot faces + Wildcard**
 
-Use `nano_banana_2_lite`, passing the newly-generated `tile_sword.png` as an image reference for style/frame-absence consistency, to generate:
+Use `nano_banana_2_lite`, passing the newly-generated `tile_dagger.png` as an image reference for style/frame-absence consistency, to generate:
 - `tile_chalice.png` — chalice silhouette
 - `tile_gem.png` — gem silhouette
 - `tile_dragon.png` — dragon-head or dragon-emblem silhouette
@@ -476,7 +476,7 @@ Do not proceed to the batch of ~38 remaining tile faces + 9 remaining backdrops 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add www/assets/images/tiles/tile_sword.png www/assets/images/tiles/tile_chalice.png www/assets/images/tiles/tile_gem.png www/assets/images/tiles/tile_dragon.png www/assets/images/tiles/tile_wildcard.png www/assets/images/backgrounds/bg_stage1_forest.png
+git add www/assets/images/tiles/tile_dagger.png www/assets/images/tiles/tile_chalice.png www/assets/images/tiles/tile_gem.png www/assets/images/tiles/tile_dragon.png www/assets/images/tiles/tile_wildcard.png www/assets/images/backgrounds/bg_stage1_forest.png
 git commit -m "feat: generate pilot frameless tile faces, wildcard tile, and stage-1 backdrop"
 ```
 
