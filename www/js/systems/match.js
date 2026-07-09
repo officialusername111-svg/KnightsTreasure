@@ -120,3 +120,48 @@ export function removeAllLocks(state) {
   next.locksRemaining = 0;
   return next;
 }
+
+// Combo Streak Wildcard (2026-07-09 spec, §2): tag a tile as the Wildcard. Its real icon
+// and real partner are untouched — only rendering and matching behavior change (see
+// matchWildcard). No-op on an ineligible tile so callers don't need to pre-validate.
+export function spawnWildcard(state, index) {
+  const t = state.tiles[index];
+  if (!t || t.matched || t.faceUp || t.locked || t.isDecoy) return state;
+  const next = clone(state);
+  next.tiles[index].wildcard = true;
+  return next;
+}
+
+// Resolve a Wildcard against whatever tile the player flips alongside it. If it happens
+// to be the Wildcard's own true partner this is a plain match. Otherwise both clear as a
+// scored pair, and each side's now-partnerless true sibling is silently retired (matched,
+// unscored) with totalPairs reduced by exactly one — so `matchedPairs === totalPairs`
+// stays reachable through ordinary play instead of leaving an unmatchable orphan tile.
+export function matchWildcard(state, wildcardIdx, otherIdx) {
+  const a = state.tiles[wildcardIdx], b = state.tiles[otherIdx];
+  if (!a || !b || !a.wildcard || a.matched || b.matched || a.locked || b.locked ||
+      b.isDecoy || wildcardIdx === otherIdx) {
+    return { state, result: 'ignored' };
+  }
+  const next = clone(state);
+  next.tiles[wildcardIdx].matched = true; next.tiles[wildcardIdx].faceUp = true;
+  next.tiles[otherIdx].matched = true; next.tiles[otherIdx].faceUp = true;
+  if (next.firstPick === wildcardIdx || next.firstPick === otherIdx) next.firstPick = null;
+  next.matchedPairs += 1;
+  if (a.icon !== b.icon) {
+    const orphanA = next.tiles.find((t) => t.index !== wildcardIdx && t.icon === a.icon && !t.matched);
+    const orphanB = next.tiles.find((t) => t.index !== otherIdx && t.icon === b.icon && !t.matched);
+    if (orphanA) orphanA.matched = true;
+    if (orphanB) orphanB.matched = true;
+    if (orphanA || orphanB) next.totalPairs -= 1;
+  }
+  if (next.locksRemaining > 0) {
+    next.matchesSinceUnlock += 1;
+    if (next.matchesSinceUnlock >= next.unlockAfterMatches) {
+      next.matchesSinceUnlock = 0;
+      const lk = next.tiles.find((t) => t.locked);
+      if (lk) { lk.locked = false; next.locksRemaining -= 1; }
+    }
+  }
+  return { state: next, result: next.matchedPairs === next.totalPairs ? 'win' : 'match' };
+}

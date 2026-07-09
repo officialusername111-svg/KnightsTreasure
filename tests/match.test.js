@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildDeck, createMatchState, tapTile, resolveMismatch, removeAllLocks, matchPair } from '../www/js/systems/match.js';
+import { buildDeck, createMatchState, tapTile, resolveMismatch, removeAllLocks, matchPair, spawnWildcard, matchWildcard } from '../www/js/systems/match.js';
 
 const identity = (a) => a; // deterministic "shuffle"
 
@@ -149,5 +149,62 @@ describe('matchPair', () => {
     s = matchPair(s, 2, 3).state;          // auto-match the B pair
     expect(s.tiles[0].locked).toBe(false); // one match at unlockAfterMatches:1 → chain freed
     expect(s.locksRemaining).toBe(0);
+  });
+});
+
+describe('spawnWildcard / matchWildcard', () => {
+  function board() {
+    // identity shuffle -> deck order [A,A,B,B,C,C] (indices 0-5)
+    return createMatchState({ pairs: 3, iconPool: ['A', 'B', 'C'], shuffle: identity });
+  }
+
+  it('tags an eligible tile without touching its icon', () => {
+    const s = spawnWildcard(board(), 0);
+    expect(s.tiles[0].wildcard).toBe(true);
+    expect(s.tiles[0].icon).toBe('A');
+  });
+
+  it('is a no-op on an ineligible tile (already matched)', () => {
+    let s = board();
+    s.tiles[0].matched = true;
+    const next = spawnWildcard(s, 0);
+    expect(next.tiles[0].wildcard).toBeUndefined();
+  });
+
+  it('resolving against its own true partner behaves like a normal match', () => {
+    const s = spawnWildcard(board(), 0);            // tile 0 = wildcard (icon A), true partner tile 1
+    const { state, result } = matchWildcard(s, 0, 1);
+    expect(result).toBe('match');
+    expect(state.tiles[0].matched).toBe(true);
+    expect(state.tiles[1].matched).toBe(true);
+    expect(state.matchedPairs).toBe(1);
+    expect(state.totalPairs).toBe(3);                // unchanged: no orphans possible here
+  });
+
+  it('resolving against a different tile retires both true partners and shrinks totalPairs by one', () => {
+    const s = spawnWildcard(board(), 0);             // wildcard = tile 0 (icon A), true partner tile 1
+    const { state, result } = matchWildcard(s, 0, 2); // tile 2 = icon B, true partner tile 3
+    expect(result).toBe('match');
+    expect(state.tiles[0].matched).toBe(true);        // wildcard cleared
+    expect(state.tiles[2].matched).toBe(true);        // chosen tile cleared
+    expect(state.tiles[1].matched).toBe(true);         // wildcard's true partner silently retired
+    expect(state.tiles[3].matched).toBe(true);         // chosen tile's true partner silently retired
+    expect(state.matchedPairs).toBe(1);                // exactly one scored pairing
+    expect(state.totalPairs).toBe(2);                  // 3 - 1: win target stays reachable
+  });
+
+  it('stays winnable after a mismatch: the remaining real pair alone reaches the new target', () => {
+    let s = spawnWildcard(board(), 0);
+    s = matchWildcard(s, 0, 2).state;                  // totalPairs now 2, matchedPairs 1
+    const r1 = tapTile(s, 4);                          // tiles 4,5 = icon C, untouched
+    const r2 = tapTile(r1.state, 5);
+    expect(r2.result).toBe('win');
+  });
+
+  it('ignores resolution against an already-matched tile', () => {
+    let s = spawnWildcard(board(), 0);
+    s = matchWildcard(s, 0, 2).state;
+    const { result } = matchWildcard(s, 0, 2);         // tile 0 already matched
+    expect(result).toBe('ignored');
   });
 });
