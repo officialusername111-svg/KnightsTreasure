@@ -56,7 +56,9 @@ unchanged):
 
 **New tile subject: `tile_wildcard`** — see §2. One asset, used across every stage (like
 `tile_back`), not part of any `STAGE_TILES` pool since it is spawned dynamically, not dealt at
-board setup.
+board setup. It is a rendering overlay only: the tagged tile's real (hidden) icon is untouched, so
+`tile_wildcard.png` displays in place of that tile's true face art, not a swap of the underlying
+data.
 
 ## 2. Mechanic — Combo Streak Wildcard
 
@@ -70,25 +72,40 @@ resets to `0` on mismatch (mirroring `combo`) and whenever a Wildcard actually s
 `sinceWildcard` to `0`.
 
 **Spawn.** Pick one random tile that is currently face-down, unlocked (not under a D9 chain), and
-not a decoy tile (D6); replace its identity with `tile_wildcard`. Only one Wildcard may exist on the
-board at a time — while one is live, `sinceWildcard` keeps counting but spawning is skipped until
-the existing Wildcard is resolved.
+not a decoy tile (D6); tag it `wildcard: true`. **Its real `icon` and real partner are left
+untouched** — only its rendered face and matching behavior change (see Resolution). Only one
+Wildcard may exist on the board at a time — while one is live, `sinceWildcard` keeps counting but
+spawning is skipped until the existing Wildcard is resolved.
 
-**Resolution.** Flipping the Wildcard as either half of a pair auto-resolves the match: whichever
-second tile is flipped alongside it (any identity) is treated as a match — both tiles clear, score
-is awarded via the normal match path (`celebrateMatch()`), and the Wildcard's own "orphaned"
-partner concept does not exist because the Wildcard was never dealt with a pair — the tile it
-matched against is simply removed as if it had found its true partner. That removed tile's actual
-partner (elsewhere on the board, from the original deal) remains in play and must still be matched
-normally. Resolving a Wildcard match still increments `combo` and `sinceWildcard` like any other
-match (subject to the "only one live at a time" spawn gate above).
+**Resolution.** Flipping the Wildcard as either half of a pair always resolves as a match,
+regardless of what the second tile's icon is:
+- **If the second tile happens to be the Wildcard's own true partner** (same icon), this is simply
+  a normal match — no side effects.
+- **If the second tile is anything else,** both tiles clear as a pair (score awarded via the normal
+  match path), and then each tile's own true partner — the Wildcard's real partner, and the other
+  tile's real partner, both elsewhere on the board — is **silently retired**: marked matched with
+  no score, so it stops being tappable, and the level's remaining pair target
+  (`match.totalPairs`, not the original design-time `level.pairs`) is reduced by **one** to keep
+  the count exact. This is what prevents the classic memory-game failure mode of a permanently
+  unmatchable orphan tile: every real tile ends the level either normally matched, part of a
+  Wildcard pairing, or silently retired as fallout from one — never stranded alone.
+- Resolving a Wildcard match still increments `combo` and `sinceWildcard` like any other match
+  (subject to the "only one live at a time" spawn gate above).
+
+**Scoring must not use the shrinking target.** Because a Wildcard mismatch can lower
+`match.totalPairs` below the level's original pair count, every scoring/star calculation
+(`computeScore`, `computeStars`, `mistakePenalty` in `www/js/ui/game.js`'s `win()`) must read the
+level's fixed, original `level.pairs` — never the live `match.totalPairs` — so using a Wildcard
+never quietly reduces the player's "Matches ×100" score term. `match.totalPairs` is used **only**
+internally by match.js's win-condition check (`matchedPairs === totalPairs`).
 
 **Guardrails.**
 - No score bonus or score penalty attached to the Wildcard match itself — it is a tempo reward for
   skilled play, not a purchased power-up, and must not be tunable to outperform Sword/Bomb
   (`www/js/data/items.js`), which cost coins and carry a −25 score penalty.
-- The Wildcard is exempt from Eagle Eye's "glow all real pairs" targeting (it has no real pair) and
-  from Holy Water's chain-removal logic (it is never locked).
+- The Wildcard is exempt from Eagle Eye's "glow all real pairs" targeting (it has no real pair to
+  glow differently from its own tile) and from Holy Water's chain-removal logic (it is never
+  locked).
 
 ## 3. Mechanic — Chain Reveal Ripple
 
@@ -172,9 +189,11 @@ the balance is tighter than estimated.
   the case where a Wildcard already fired earlier in the same streak), Wildcard spawn-candidate
   selection (excludes locked/decoy tiles), and ripple neighbor selection (visual-grid adjacency,
   reuses the `visualBombZone`/`visualCross` pattern, fizzles with no valid neighbor).
-- `tests/match.test.js`: Wildcard match resolution (clears both tiles, awards standard score, no
-  penalty, orphaned partner remains in play, still increments `combo`/`sinceWildcard`), `combo`
-  and `sinceWildcard` both reset on mismatch, Ripple peek does not affect either counter.
+- `tests/match.test.js`: Wildcard resolved against its own true partner behaves exactly like a
+  normal match (no `totalPairs` change); resolved against a different tile clears both, retires
+  each side's real partner with no score, and reduces `totalPairs` by exactly one; a full-board
+  simulation proves the level remains winnable (no stranded orphan) after a Wildcard mismatch;
+  `combo` and `sinceWildcard` both reset on mismatch; Ripple peek does not affect either counter.
 
 ## Out of scope
 
