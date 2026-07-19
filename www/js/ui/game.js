@@ -1,5 +1,5 @@
-import { createMatchState, tapTile, resolveMismatch, matchPair } from '../systems/match.js';
-import { chooseSwaps, visualBombZone, visualCross } from '../systems/mechanics.js';
+import { createMatchState, tapTile, resolveMismatch, matchPair, spawnWildcard, matchWildcard } from '../systems/match.js';
+import { chooseSwaps, visualBombZone, visualCross, pickWildcardCandidate } from '../systems/mechanics.js';
 import { computeStars, computeScore, mistakePenalty } from '../systems/scoring.js';
 import { recordLevelResult } from '../core/state.js';
 import { persistSave } from '../core/save.js';
@@ -36,6 +36,8 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
   let timeLeft = level.timeLimit;
   let elapsed = 0;
   let combo = 0;
+  let sinceWildcard = 0;
+  let wildcardIndex = null;
   let maxCombo = 0;
   let timerId = null;
   let moveTimer = null;          // D8 moving-tiles scheduler
@@ -161,6 +163,14 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
     });
   }
 
+  function applyWildcardFace(index) {
+    const el = tileEls[index];
+    if (!el) return;
+    const img = el.querySelector('.kt-front img');
+    if (img) img.src = new URL(ASSETS.tiles + 'tile_wildcard.png', document.baseURI).href;
+    el.classList.add('kt-wildcard');
+  }
+
   function comboBonus() {
     return Math.max(0, maxCombo - 2) * 20;
   }
@@ -185,6 +195,21 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
     // tap is responsive instead of waiting out the flip-memory timer.
     if (match.locked) resolvePending();
     const prevFirst = match.firstPick;
+    if (prevFirst !== null && wildcardIndex !== null &&
+        (prevFirst === wildcardIndex || index === wildcardIndex) && prevFirst !== index) {
+      const otherIdx = prevFirst === wildcardIndex ? index : prevFirst;
+      const wcIdx = wildcardIndex;
+      const { state, result } = matchWildcard(match, wcIdx, otherIdx);
+      if (result !== 'ignored') {
+        match = state;
+        wildcardIndex = null;
+        sfx('match');
+        celebrateMatch(wcIdx, otherIdx);
+        syncBoard();
+        if (result === 'win') win();
+        return;
+      }
+    }
     const { state, result } = tapTile(match, index);
     if (result === 'ignored') return;
     match = state;
@@ -216,6 +241,7 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
     }
     if (result === 'mismatch') {
       combo = 0;
+      sinceWildcard = 0;
       const el = tileEls[index];
       if (el) el.classList.add('wrong');
       mismatchTimer = setTimeout(resolvePending, level.flipMemoryMs);
@@ -236,7 +262,7 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
     tileEls.forEach((el, k) => { if (el) setTimeout(() => { popMatch([el]); if (k % 3 === 0) burstAtEl(scene, el, 6, 'spark'); }, k * 45); });
     let stars = computeStars({
       mistakes: match.mistakes,
-      pairs: match.totalPairs,
+      pairs: level.pairs,
       timeUsed: elapsed,
       parTime: level.parTime,
     });
@@ -255,7 +281,7 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
     if (gameState.save.brewBonusNext) stars = Math.max(stars, 2); // Knight's Brew floor
     const timeRemaining = level.timeLimit ? Math.max(0, timeLeft) : 0;
     const score = computeScore({
-      matches: match.totalPairs,
+      matches: level.pairs,
       timeRemaining,
       comboBonus: comboBonus(),
       mistakes: match.mistakes,
@@ -302,10 +328,10 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
     const breakdown =
       `<div class="kt-ov-score">` +
         `<div class="total">${TEXT.score}: <span id="kt-ov-score">0</span></div>` +
-        `<div class="row"><span>Matches ×100</span><span>+${match.totalPairs * 100}</span></div>` +
+        `<div class="row"><span>Matches ×100</span><span>+${level.pairs * 100}</span></div>` +
         `<div class="row"><span>Time left ×10</span><span>+${timeRemaining * 10}</span></div>` +
         `<div class="row"><span>Combo bonus</span><span>+${comboBonus()}</span></div>` +
-        `<div class="row" style="color:#c06a4a;"><span>Mistakes ×50</span><span>−${mistakePenalty({ matches: match.totalPairs, timeRemaining, comboBonus: comboBonus(), mistakes: match.mistakes })}</span></div>` +
+        `<div class="row" style="color:#c06a4a;"><span>Mistakes ×50</span><span>−${mistakePenalty({ matches: level.pairs, timeRemaining, comboBonus: comboBonus(), mistakes: match.mistakes })}</span></div>` +
         (powerPenalty ? `<div class="row" style="color:#c06a4a;"><span>Power-ups used</span><span>−${powerPenalty}</span></div>` : '') +
         (warHornBonus ? `<div class="row" style="color:#8fd07a;"><span>War Horn ×2</span><span>+${warHornBonus}</span></div>` : '') +
       `</div>` +
@@ -516,6 +542,18 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
     // combo escalation: punch-in from 3-chains, add a shudder from 5-chains
     if (combo >= 3) boardZoom(boardWrap, tileEls[j], { scale: 1.04, inMs: 100, holdMs: 40, outMs: 260 });
     if (combo >= 5) { sceneShake(scene, { amp: 4, ms: 260 }); sfx('fanfare'); }
+    // Combo Streak Wildcard (2026-07-09 spec, §2): counts every match, resets on spawn
+    // and on mismatch, independent of `combo` (which keeps driving the escalations above).
+    sinceWildcard += 1;
+    if (sinceWildcard >= 3 && wildcardIndex === null) {
+      const spawnIdx = pickWildcardCandidate(match.tiles);
+      if (spawnIdx !== null) {
+        match = spawnWildcard(match, spawnIdx);
+        wildcardIndex = spawnIdx;
+        applyWildcardFace(spawnIdx);
+        sinceWildcard = 0;
+      }
+    }
   }
 
   // Owner decision 2026-07-08: a pair held fully face-up by power-up reveals completes
