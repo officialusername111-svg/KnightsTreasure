@@ -1,5 +1,5 @@
 import { createMatchState, tapTile, resolveMismatch, matchPair, spawnWildcard, matchWildcard } from '../systems/match.js';
-import { chooseSwaps, visualBombZone, visualCross, pickWildcardCandidate } from '../systems/mechanics.js';
+import { chooseSwaps, visualBombZone, visualCross, pickWildcardCandidate, visualOrthogonalNeighbors } from '../systems/mechanics.js';
 import { computeStars, computeScore, mistakePenalty } from '../systems/scoring.js';
 import { recordLevelResult } from '../core/state.js';
 import { persistSave } from '../core/save.js';
@@ -169,6 +169,35 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
     const img = el.querySelector('.kt-front img');
     if (img) img.src = new URL(ASSETS.tiles + 'tile_wildcard.png', document.baseURI).href;
     el.classList.add('kt-wildcard');
+  }
+
+  function peekTile(idx) {
+    const el = tileEls[idx];
+    if (!el || permaReveal.has(idx)) return;
+    el.classList.add('kt-peek');
+    permaReveal.add(idx);
+    syncBoard();
+    setTimeout(() => {
+      permaReveal.delete(idx);
+      el.classList.remove('kt-peek');
+      syncBoard();
+    }, 350);
+  }
+
+  // Chain Reveal Ripple (2026-07-09 spec, §3): peeks `count` random face-down, unlocked
+  // neighbors of the just-matched tiles. Peek only — never itself completes a match.
+  function triggerRipple(i, j, count = 1) {
+    const candidates = [i, j]
+      .flatMap((anchor) => visualOrthogonalNeighbors(domOrder(), level.grid.cols, anchor))
+      .filter((idx) => {
+        const t = match.tiles[idx];
+        return t && !t.matched && !t.faceUp && !t.locked;
+      });
+    const unique = [...new Set(candidates)];
+    for (let k = 0; k < count && unique.length; k++) {
+      const pick = unique.splice(Math.floor(Math.random() * unique.length), 1)[0];
+      peekTile(pick);
+    }
   }
 
   function comboBonus() {
@@ -554,6 +583,7 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
         sinceWildcard = 0;
       }
     }
+    triggerRipple(i, j);
   }
 
   // Owner decision 2026-07-08: a pair held fully face-up by power-up reveals completes
