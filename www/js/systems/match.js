@@ -149,8 +149,12 @@ export function matchWildcard(state, wildcardIdx, otherIdx) {
   if (next.firstPick === wildcardIdx || next.firstPick === otherIdx) next.firstPick = null;
   next.matchedPairs += 1;
   if (a.icon !== b.icon) {
-    const orphanA = next.tiles.find((t) => t.index !== wildcardIdx && t.icon === a.icon && !t.matched && !t.locked);
-    const orphanB = next.tiles.find((t) => t.index !== otherIdx && t.icon === b.icon && !t.matched && !t.locked);
+    // Locked tiles stay eligible here (2026-07-20 fix): excluding them made a locked true
+    // partner unfindable, silently leaving it stranded and breaking the winnability guarantee
+    // this retirement exists for — a matched tile's `locked` flag is inert anyway, since
+    // syncBoard only renders the "locked" state for tiles that are `!matched`.
+    const orphanA = next.tiles.find((t) => t.index !== wildcardIdx && t.icon === a.icon && !t.matched);
+    const orphanB = next.tiles.find((t) => t.index !== otherIdx && t.icon === b.icon && !t.matched);
     if (orphanA) orphanA.matched = true;
     if (orphanB) orphanB.matched = true;
     if (orphanA || orphanB) next.totalPairs -= 1;
