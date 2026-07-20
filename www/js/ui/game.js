@@ -5,6 +5,7 @@ import { recordLevelResult } from '../core/state.js';
 import { persistSave } from '../core/save.js';
 import { ASSETS, TEXT, STAGE_BG } from '../data/config.js';
 import { tilePoolForStage } from '../data/tiles.js';
+import { unlockedMechanics } from '../data/mechanics.js';
 import { ITEMS, POWERUPS } from '../data/items.js';
 import { rankFor } from '../systems/ranks.js';
 import { levelReward, comboCoins as comboCoinsFor, earn } from '../systems/economy.js';
@@ -14,7 +15,7 @@ import { haptic } from '../systems/haptics.js';
 import { confirmModal } from './modal.js';
 import { renderHud } from './hud.js';
 import { showInteractiveTutorial, showMechanicTutorial } from './tutorial.js';
-import { burst, popMatch, burstAtEl, staggerIn, comboBanner, countUp, starSlam, castProjectile, castImpact, boardWave, shieldBubble, igniteReveal, boardFlash, irisBloom, streakReveal, edgePulse, sceneShake, impactFreeze, radialStreaks, scorchGlow, tileKick, bonusFloat, pairMarks, pourOver, debrisFall, hornHerald, lightBeam, lightSweep, boardZoom, impactRing } from './animations.js';
+import { burst, popMatch, burstAtEl, staggerIn, comboBanner, countUp, starSlam, castProjectile, castImpact, boardWave, shieldBubble, igniteReveal, boardFlash, irisBloom, streakReveal, edgePulse, sceneShake, impactFreeze, radialStreaks, scorchGlow, tileKick, bonusFloat, pairMarks, pourOver, debrisFall, hornHerald, lightBeam, lightSweep, boardZoom, impactRing, streakBannerSweep } from './animations.js';
 
 function shuffle(arr) {
   const a = [...arr];
@@ -27,6 +28,7 @@ function shuffle(arr) {
 
 export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, onHome, onStory, onSettings, daily }) {
   const level = gameState.current;
+  const activeMechanics = unlockedMechanics(level.stage).map((m) => m.id);
   let match = createMatchState({
     pairs: level.pairs, iconPool: shuffle(tilePoolForStage(level.stage)), shuffle,
     decoyCount: level.decoyCount || 0,
@@ -41,6 +43,7 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
   let maxCombo = 0;
   let timerId = null;
   let moveTimer = null;          // D8 moving-tiles scheduler
+  let vaultPulseTimer = null;    // Stage 8 escalation: ambient location-only pulse
   let mismatchTimer = null;
   let finished = false;
   let frozen = false; // Shield power-up freezes the countdown
@@ -107,7 +110,7 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
   footer.innerHTML = `<button type="button" class="kt-foot-home">Home</button><button type="button" class="kt-foot-story">Story</button><button type="button" class="kt-foot-settings">Settings</button>`;
   // Leaving mid-level forfeits it (stamina already spent) — confirm first.
   // Abandoning ends the game cleanly: stop the timer + any pending flip, then leave.
-  const endGame = () => { finished = true; cancelAim(); stopTimer(); stopMoving(); if (mismatchTimer) clearTimeout(mismatchTimer); document.removeEventListener('visibilitychange', onVisibility); };
+  const endGame = () => { finished = true; cancelAim(); stopTimer(); stopMoving(); stopVaultPulse(); if (mismatchTimer) clearTimeout(mismatchTimer); document.removeEventListener('visibilitychange', onVisibility); };
   const leaveGuard = (action) => {
     if (finished) { action(); return; }
     confirmModal(scene, {
@@ -233,7 +236,7 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
         match = state;
         wildcardIndex = null;
         sfx('match');
-        celebrateMatch(wcIdx, otherIdx);
+        celebrateMatch(wcIdx, otherIdx, { wasWildcard: true });
         syncBoard();
         if (result === 'win') win();
         return;
@@ -285,6 +288,7 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
     finished = true;
     stopTimer();
     stopMoving();
+    stopVaultPulse();
     if (mismatchTimer) { clearTimeout(mismatchTimer); mismatchTimer = null; }   // audit B3
     sfx('win'); sfx('coin'); haptic('win');
     // victory wave: the cleared board ripples once, left-to-right, before the overlay
@@ -343,6 +347,7 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
     finished = true;
     stopTimer();
     stopMoving();
+    stopVaultPulse();
     haptic('lose');
     if (mismatchTimer) { clearTimeout(mismatchTimer); mismatchTimer = null; }   // audit B3
     sfx('lose');
@@ -456,6 +461,20 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
   }
   function stopMoving() { if (moveTimer) clearInterval(moveTimer); moveTimer = null; }
 
+  function startVaultPulse() {
+    if (!activeMechanics.includes('vaultPulse')) return;
+    vaultPulseTimer = setInterval(() => {
+      if (finished || document.hidden) return;
+      const idx = pickWildcardCandidate(match.tiles);
+      if (idx === null) return;
+      const el = tileEls[idx];
+      if (!el) return;
+      el.classList.add('kt-vault-pulse');
+      setTimeout(() => el.classList.remove('kt-vault-pulse'), 1200);
+    }, 20000);
+  }
+  function stopVaultPulse() { if (vaultPulseTimer) clearInterval(vaultPulseTimer); vaultPulseTimer = null; }
+
   // Swap two tiles' grid positions by reordering their DOM nodes. The model index is the
   // tile's identity (taps still match correctly); only the on-screen position changes.
   function doSwaps(pairs) {
@@ -559,7 +578,7 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
 
   // Shared match celebration: combo bookkeeping, War Horn bonus, pop + sparks + banner.
   // Callers play their own sfx and run syncBoard/win() around it.
-  function celebrateMatch(i, j) {
+  function celebrateMatch(i, j, { wasWildcard = false } = {}) {
     combo += 1;
     maxCombo = Math.max(maxCombo, combo);
     if (warHornActive) warHornBonus += 100;   // War Horn doubles this match (base 100 → 200)
@@ -571,6 +590,8 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
     // combo escalation: punch-in from 3-chains, add a shudder from 5-chains
     if (combo >= 3) boardZoom(boardWrap, tileEls[j], { scale: 1.04, inMs: 100, holdMs: 40, outMs: 260 });
     if (combo >= 5) { sceneShake(scene, { amp: 4, ms: 260 }); sfx('fanfare'); }
+    const streakBannerOn = activeMechanics.includes('streakBanner') && combo >= 5;
+    if (streakBannerOn && combo === 5) streakBannerSweep(scene);
     // Combo Streak Wildcard (2026-07-09 spec, §2): counts every match, resets on spawn
     // and on mismatch, independent of `combo` (which keeps driving the escalations above).
     sinceWildcard += 1;
@@ -583,7 +604,8 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
         sinceWildcard = 0;
       }
     }
-    triggerRipple(i, j);
+    const twinSparkOn = activeMechanics.includes('twinSpark') && wasWildcard;
+    triggerRipple(i, j, (streakBannerOn ? 2 : 1) + (twinSparkOn ? 1 : 0));
   }
 
   // Owner decision 2026-07-08: a pair held fully face-up by power-up reveals completes
@@ -938,10 +960,11 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
   const begin = () => {
     if (level.preShowMs) {
       match.tiles.forEach((t) => { const el = tileEls[t.index]; if (el && !t.locked) el.classList.add('flipped'); });
-      setTimeout(() => { if (finished) return; syncBoard(); startTimer(); startMoving(); }, level.preShowMs);
+      setTimeout(() => { if (finished) return; syncBoard(); startTimer(); startMoving(); startVaultPulse(); }, level.preShowMs);
     } else {
       startTimer();
       startMoving();
+      startVaultPulse();
     }
   };
   // Contextual mechanic tutorials: show each new mechanic/feature once, in sequence,

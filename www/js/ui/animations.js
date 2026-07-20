@@ -15,6 +15,17 @@ export function comboTier(combo) {
   return null;
 }
 
+// Stage 3 escalation (2026-07-09 spec, §4): a gold bar sweeps across the board once the
+// streak crosses 5. Self-removes via the existing fxLayer/animationend convention.
+export function streakBannerSweep(host) {
+  if (reduced()) return;
+  const layer = fxLayer(host);
+  const bar = document.createElement('div');
+  bar.className = 'kt-streak-banner';
+  bar.addEventListener('animationend', () => bar.remove(), { once: true });
+  layer.appendChild(bar);
+}
+
 // Lazily ensure a pointer-transparent effects layer inside a (positioned) host.
 function fxLayer(host) {
   let layer = host.querySelector(':scope > .kt-fx');
