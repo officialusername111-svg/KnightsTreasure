@@ -157,6 +157,10 @@ export function createGameScene({ gameState, adapter, bus, onAdvance, onRetry, o
 
   // Sync existing tile elements to the model (no DOM recreation → flip animates).
   function syncBoard() {
+    // Final-review fix: the Wildcard tile can also be cleared via the permaReveal-twin
+    // branch in onTap() or via autoMatchRevealed() — neither path clears wildcardIndex,
+    // so this centralized check (syncBoard runs after every match path) closes that leak.
+    if (wildcardIndex !== null && match.tiles[wildcardIndex]?.matched) wildcardIndex = null;
     match.tiles.forEach((tile) => {
       const el = tileEls[tile.index];
       if (!el) return;

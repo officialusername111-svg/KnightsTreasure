@@ -149,8 +149,8 @@ export function matchWildcard(state, wildcardIdx, otherIdx) {
   if (next.firstPick === wildcardIdx || next.firstPick === otherIdx) next.firstPick = null;
   next.matchedPairs += 1;
   if (a.icon !== b.icon) {
-    const orphanA = next.tiles.find((t) => t.index !== wildcardIdx && t.icon === a.icon && !t.matched);
-    const orphanB = next.tiles.find((t) => t.index !== otherIdx && t.icon === b.icon && !t.matched);
+    const orphanA = next.tiles.find((t) => t.index !== wildcardIdx && t.icon === a.icon && !t.matched && !t.locked);
+    const orphanB = next.tiles.find((t) => t.index !== otherIdx && t.icon === b.icon && !t.matched && !t.locked);
     if (orphanA) orphanA.matched = true;
     if (orphanB) orphanB.matched = true;
     if (orphanA || orphanB) next.totalPairs -= 1;
