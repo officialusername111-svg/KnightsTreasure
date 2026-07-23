@@ -77,7 +77,8 @@ function createRandomTile(band: StratumBand, floor: number, r: number, c: number
     id: `f${floor}-${r}-${c}`,
     role,
     kind,
-    faceDown: false,
+    // Surface starts lit, Relic/Vault start fogged — D21.
+    faceDown: band !== 'surface',
     ...(value !== undefined ? { value } : {}),
   };
 }

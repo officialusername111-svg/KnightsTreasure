@@ -13,6 +13,20 @@ describe('descend', () => {
     expect(isBoardEmpty(result.board)).toBe(false);
   });
 
+  it('lights only the surface band on the new floor, matching the new board tiles\' faceDown', () => {
+    const state = makeState({ floor: 1 });
+    const result = descend(state);
+    const rows = result.board.length;
+
+    for (let r = 0; r < rows; r++) {
+      const lit = bandForRow(r, rows) === 'surface';
+      expect(result.torchlight[r].every(Boolean)).toBe(lit);
+      for (const tile of result.board[r]) {
+        expect(tile?.faceDown).toBe(!lit);
+      }
+    }
+  });
+
   it("the new floor's vault band never contains a food tile and only rare hoard kinds", () => {
     const state = makeState({ floor: 1 });
     const result = descend(state);

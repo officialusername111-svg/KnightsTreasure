@@ -70,7 +70,8 @@ function collectRuns(
   for (let i = 1; i <= length; i++) {
     const prev = at(i - 1);
     const cur = i < length ? at(i) : null;
-    const sameKind = !!prev && !!cur && prev.kind === cur.kind;
+    // A face-down tile is a gap for matching purposes, same as null — D22.
+    const sameKind = !!prev && !!cur && prev.kind === cur.kind && !prev.faceDown && !cur.faceDown;
     if (!sameKind) {
       const runLength = i - runStart;
       if (runLength >= 3) {
@@ -97,6 +98,49 @@ export function bandForRow(row: number, totalRows: number): StratumBand {
   if (row < ranges.surface[1]) return 'surface';
   if (row < ranges.relic[1]) return 'relic';
   return 'vault';
+}
+
+/** Surface band starts lit, Relic/Vault start fogged — the same row boundary
+ * bandForRow() already defines. See pivot decisions doc D21. */
+export function initialTorchlight(rows: number, cols: number): boolean[][] {
+  return Array.from({ length: rows }, (_, r) => new Array<boolean>(cols).fill(bandForRow(r, rows) === 'surface'));
+}
+
+const ORTHOGONAL_DIRS: Coord[] = [
+  { row: -1, col: 0 },
+  { row: 1, col: 0 },
+  { row: 0, col: -1 },
+  { row: 0, col: 1 },
+];
+
+const DIAGONAL_DIRS: Coord[] = [
+  { row: -1, col: -1 },
+  { row: -1, col: 1 },
+  { row: 1, col: -1 },
+  { row: 1, col: 1 },
+];
+
+/** Flips face-down neighbors of a resolved match's cells to lit, in place. `widen`
+ * (candle/Light matches) also includes diagonals — a ring instead of a cross.
+ * See pivot decisions doc D23. */
+export function revealFogNeighbors(
+  board: (Tile | null)[][],
+  torchlight: boolean[][],
+  matchedCells: Coord[],
+  widen: boolean,
+): void {
+  const dirs = widen ? [...ORTHOGONAL_DIRS, ...DIAGONAL_DIRS] : ORTHOGONAL_DIRS;
+  for (const cell of matchedCells) {
+    for (const dir of dirs) {
+      const row = cell.row + dir.row;
+      const col = cell.col + dir.col;
+      if (!inBounds(board, { row, col })) continue;
+      const tile = board[row][col];
+      if (!tile || !tile.faceDown) continue;
+      board[row][col] = { ...tile, faceDown: false };
+      torchlight[row][col] = true;
+    }
+  }
 }
 
 /** How many full bands (surface, then relic) are completely cleared. Does not itself

@@ -1,5 +1,5 @@
 import type { GameState, WeaponKind } from '../types';
-import { findMatches, cloneBoard, computeStratum } from '../board';
+import { findMatches, cloneBoard, computeStratum, revealFogNeighbors } from '../board';
 import { applyWeaponMatch } from './weaponEffects';
 import { FOOD_BALANCE, refillForMatchSize, EMBLEM_BALANCE, GREED_BALANCE } from '../data/balance';
 import { HOARD_VALUES } from '../data/tileTaxonomy';
@@ -10,6 +10,7 @@ export function resolveMatches(state: GameState): GameState {
   if (groups.length === 0) return state;
 
   const board = cloneBoard(state.board);
+  const torchlight = state.torchlight.map((row) => row.slice());
   const rng = createRng(state.rngSeed);
   let next = state;
 
@@ -49,6 +50,7 @@ export function resolveMatches(state: GameState): GameState {
         break;
     }
 
+    revealFogNeighbors(board, torchlight, group.cells, group.role === 'light');
     for (const cell of group.cells) board[cell.row][cell.col] = null;
   }
 
@@ -60,6 +62,7 @@ export function resolveMatches(state: GameState): GameState {
   return {
     ...next,
     board,
+    torchlight,
     stratum,
     meters: { ...next.meters, rations, exhausted },
     rngSeed,

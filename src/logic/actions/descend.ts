@@ -1,5 +1,6 @@
 import type { GameState } from '../types';
 import { generateBoard } from '../board-gen';
+import { initialTorchlight } from '../board';
 import { createRng, advanceSeed } from '../rng';
 import { BOARD_BALANCE, GUARDIAN_BALANCE } from '../data/balance';
 
@@ -22,7 +23,7 @@ export function descend(state: GameState): GameState {
     floor,
     stratum: 0,
     board,
-    torchlight: board.map((row) => row.map(() => true)),
+    torchlight: initialTorchlight(rows, cols),
     guardian: { hp, maxHp: hp, armor: 0, rage: 0, turnCounter: 0 },
     rngSeed,
   };
