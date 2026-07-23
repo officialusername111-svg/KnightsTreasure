@@ -23,7 +23,7 @@ export function descend(state: GameState): GameState {
     stratum: 0,
     board,
     torchlight: board.map((row) => row.map(() => true)),
-    guardian: { hp, maxHp: hp, armor: GUARDIAN_BALANCE.armor, rage: 0, turnCounter: 0 },
+    guardian: { hp, maxHp: hp, armor: 0, rage: 0, turnCounter: 0 },
     rngSeed,
   };
 }

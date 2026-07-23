@@ -22,6 +22,7 @@ export function makeState(overrides: Partial<GameState> = {}): GameState {
     bannerCharge: 0,
     meters: { rations: 5, greed: 0, valor: 0, exhausted: false },
     guardian: { hp: 300, maxHp: 300, armor: 0, rage: 0, turnCounter: 0 },
+    knight: { hp: 100, maxHp: 100 },
     gold: 0,
     status: 'playing',
     rngSeed: 42,

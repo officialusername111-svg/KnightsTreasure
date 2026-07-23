@@ -39,7 +39,20 @@ export function refillForMatchSize(size: number): number {
 export const GUARDIAN_BALANCE = {
   dummyHpBase: 300,
   hpGrowthPerFloor: 0.2,
-  armor: 0,
+  // rage/armor: D17 — both derived from meters.greed every guardianTurn() call.
+  rageDivisor: 25,
+  maxRage: 10,
+  armorPerRage: 2,
+  maxArmor: 20,
+  // counter-attack cadence/damage: D18.
+  attackInterval: 4,
+  baseCounterDamage: 6,
+  rageDamagePerLevel: 2,
+  exhaustedDamageMultiplier: 1.5,
+};
+
+export const KNIGHT_BALANCE = {
+  hpBase: 100,
 };
 
 export const BOARD_BALANCE = {

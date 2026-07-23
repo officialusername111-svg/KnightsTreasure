@@ -29,9 +29,20 @@ export interface Guardian {
   /** Extension: lets the HUD render an hp bar without duplicating the balance formula
    * that produced this floor's starting hp. See pivot decisions doc D6. */
   maxHp: number;
+  /** Derived from `rage` every guardianTurn() call, not a flat per-floor constant.
+   * See pivot decisions doc D17. */
   armor: number;
+  /** Derived from meters.greed every guardianTurn() call. See pivot decisions doc D17. */
   rage: number;
   turnCounter: number;
+}
+
+/** Extension: the GDD's "rations... not a health bar" line implies a real one exists
+ * elsewhere. Persists across floors (only the guardian resets on descend).
+ * See pivot decisions doc D16. */
+export interface Knight {
+  hp: number;
+  maxHp: number;
 }
 
 export type RunStatus = 'playing' | 'escaped' | 'dead';
@@ -47,6 +58,7 @@ export interface GameState {
 
   meters: Meters;
   guardian: Guardian;
+  knight: Knight;
 
   gold: number;
   status: RunStatus;
