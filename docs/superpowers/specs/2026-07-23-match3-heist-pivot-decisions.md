@@ -1,7 +1,7 @@
 # Knight's Treasure — Match-3 Heist Pivot: Decisions & Mechanics Specification
 
-> **Status:** Authoritative for the match-3 dungeon-heist rework. Covers Phase 1 (match-3 core), Phase 2 (depletion & descent), and Phase 3 (guardian & greed reaction) — Phases 4–6 (fog/torchlight, banners, memory-attacking enemies) are named where the code leaves a hook for them, not designed here. Supersedes `docs/superpowers/specs/archive/2026-06-21-knights-treasure-design-decisions.md` (the memory-match design) for everything except the still-active asset-production docs (asset manifest, prompt packs, character prompts — see `docs/superpowers/specs/`, not archived).
-> **Date:** 2026-07-23 (Parts A–E), 2026-07-23 addendum (Part F, Phase 3) · **Owner review:** Part F's mechanics + UI mockup approved live in chat before implementation. Everything below is my execution of the owner's calls, delegated per this project's own rule ("delegated ≠ silent — every decision is written down").
+> **Status:** Authoritative for the match-3 dungeon-heist rework. Covers Phase 1 (match-3 core), Phase 2 (depletion & descent), Phase 3 (guardian & greed reaction), and Phase 4 (fog & torchlight) — Phases 5–6 (banners, memory-attacking enemies) are named where the code leaves a hook for them, not designed here. Supersedes `docs/superpowers/specs/archive/2026-06-21-knights-treasure-design-decisions.md` (the memory-match design) for everything except the still-active asset-production docs (asset manifest, prompt packs, character prompts — see `docs/superpowers/specs/`, not archived).
+> **Date:** 2026-07-23 (Parts A–E), 2026-07-23 addendum (Part F, Phase 3), 2026-07-23 addendum (Part G, Phase 4) · **Owner review:** Part F's and Part G's mechanics + UI mockups approved live in chat before implementation. Everything below is my execution of the owner's calls, delegated per this project's own rule ("delegated ≠ silent — every decision is written down").
 
 Each decision: **D#** — the decision · **Why** · **Affects**.
 
@@ -120,7 +120,7 @@ Armor is stubbed at 0 for Phase 1/2 (so Bow ≈ Sword numerically), but the igno
 ## Part E — Explicit Phase 3–6 hooks left in the code (not designed here)
 
 - `guardian.rage`, `guardian.armor`, `guardianTurn()` — **built, see Part F** (was Phase 3's stub; the shape-lock paid off, Part F filled it in without touching `GameController`'s call site).
-- `torchlight: boolean[][]` — always all-`true`; `Tile.faceDown` always `false` — Phase 4.
+- `torchlight: boolean[][]`, `Tile.faceDown` — **built, see Part G** (was Phase 4's stub, all-`true`/`false`; same shape-lock payoff).
 - `banner: string`, `bannerCharge: number`, `meters.valor` — charged by emblem matches now, spent by nothing yet; `useBanner()` no-ops (deliberately, not a throw) — Phase 5.
 - `Role: 'hazard'`, `HAZARD_KINDS: []` — Phase 6, needs new art before any hazard tile can spawn.
 - `tile_wildcard.png` — unassigned, open question, not decided in this pass.
@@ -169,3 +169,32 @@ if (turnCounter >= ATTACK_INTERVAL) {
 **Decision:** The single `#banner` element (previously only "Guardian defeated!", Phase 1 placeholder) becomes a two-variant result banner (`.victory` / `.defeat` CSS classes, matching the approved mockup `mockup-phase3.html`), each with a title and a gold/floor subline (`"1,240 gold banked · reached floor 3"` / `"580 gold lost to the vault · reached floor 2"`). `HudView.sync()` picks the variant from `state.status` (`'escaped'` → victory, `'dead'` → defeat) instead of the old `guardianDefeated` boolean parameter. A new "Knight" HUD bar row (gold gradient, same `bar-track`/`bar-fill` pattern as the other three meters) renders `knight.hp`/`maxHp`.
 **Why:** Reuses the existing banner element and its transition/positioning exactly rather than adding a second overlay — only the content and a variant class are new, kept simple per the mockup gate the owner approved before any of Part F's real code was written (global CLAUDE.md's UI sample-and-approve rule).
 **Affects:** `src/render/HudView.ts`, `index.html`, `src/style.css`.
+
+---
+
+## Part G — Phase 4: Fog & torchlight (2026-07-23 addendum)
+
+Turns the `torchlight: boolean[][]`/`Tile.faceDown` stubs (always all-`true`/`false` since Phase 1) into a real fog-of-war layer: part of each floor starts hidden, and matching near the lit edge pushes the light deeper.
+
+### D21 — Initial fog follows the existing strata bands, not a new parameter
+**Decision:** On floor generation (`createInitialState`/`descend`), the Surface band starts lit (`torchlight[r][c] = true`); Relic and Vault start fogged (`false`). A new `initialTorchlight(rows, cols)` helper in `board.ts` derives this directly from `bandForRow()` — the same function `computeStratum`/`generateBoard` already use for the surface/relic/vault boundary — so there is exactly one place that formula lives. `generateBoard` sets each newly-created tile's `faceDown` from the same per-row band check at creation time.
+**Why:** Fog and stratum are both "how deep have you dug" concepts; tying fog to the identical row boundary means zero new tunable and zero risk of the two drifting apart (no separate fog-density constant to keep in sync as `STRATUM_ROW_FRACTIONS` gets balanced). It also keeps the fantasy coherent: you always see the surface loot in front of you, and the torch runs out exactly where the loot gets richer.
+**Affects:** `src/logic/board.ts` (`initialTorchlight`), `src/logic/board-gen.ts` (`generateBoard`/`createRandomTile`), `src/logic/state.ts`, `src/logic/actions/descend.ts`.
+
+### D22 — Face-down tiles are inert (a gap, like `null`), not blind-matchable
+**Decision:** `findMatches`' run-collector now requires **both** cells in a candidate pair to be lit (`!faceDown`) to count as the same run — a face-down tile breaks a run exactly like a `null` cell does. A fogged tile's real `kind`/`role` is already fully present in state (nothing about matching logic changes once it's lit); the flag only ever gates *whether it's currently eligible to match*, never what it evaluates to once revealed.
+**Why:** The GDD's "matching at the light's frontier flips neighboring fog tiles face-up" only makes sense as cause-and-effect (lit match → reveal → *then* playable) if fog tiles can't already be matching before that reveal happens. The alternative — blind-matchable fog, i.e. getting a lucky match on tiles you can't see — is a real design (closer to the old memory-match game's spirit) but reads as a gamble mechanic the GDD's Six Signature Mechanics never asked for, and it would make "torch pushes into the dark" a cosmetic-only readout instead of a real gate. Owner confirmed this reading before implementation.
+**Affects:** `src/logic/board.ts` (`findMatches`/`collectRuns`).
+
+### D23 — Reveal radius: 4-neighbor cross on any match, 8-neighbor ring on a candle (Light) match
+**Decision:** A new pure helper `revealFogNeighbors(board, torchlight, matchedCells, widen)` in `board.ts` flips every face-down tile orthogonally adjacent to any cell in a resolved match's `cells` from fog to lit (`faceDown: false` on the tile, `true` on the matching `torchlight` cell). When the matched group's `role === 'light'` (the `candle` kind — Phase 1's only Light-role tile), the same call also includes the 4 diagonal neighbors, revealing a full ring instead of a cross. `resolveMatches` clones `state.torchlight` (same pattern as `cloneBoard`) and calls this once per resolved match group, passing `widen = group.role === 'light'`.
+**Why:** Gives candle — a role that's been a pure no-op filler tile since Phase 1 ("Light: Widens torchlight — Phase 4, no-op until fog exists") — its first real reason to exist, exactly as the GDD promised, without inventing a new numeric radius parameter to balance: "ring instead of cross" is a concrete, testable, one-bit difference rather than an arbitrary tile count.
+**Affects:** `src/logic/board.ts` (`revealFogNeighbors`), `src/logic/actions/resolveMatches.ts`.
+
+### D24 — Rendering: `tile_back.png`, dimmed, swapped in place; no flip animation this pass
+**Decision:** `BoardView.sync()` renders a face-down cell's sprite with the reserved `tile_back.png` texture (added to the `Assets.load` preload list alongside the per-kind manifest) at a dimmed tint (`TileSprite.setDimmed(true)`, a plain PixiJS tint, not a filter); once `faceDown` flips to `false` in state, the next `sync()` swaps in the real per-kind texture and clears the tint. No reveal animation is added — consistent with how Phase 1–3 shipped their mechanics without juice/animation passes first (that's separate polish work, not required for "built & verified").
+**Why:** Matches the mockup (`mockup-phase4.html`) the owner approved in chat before this landed — a static dim/reveal swap communicates the fog-of-war clearly without adding animation-timing complexity the render layer doesn't have infrastructure for yet (`src/render/**` has no tween/sequencing system).
+**Affects:** `src/render/assetManifest.ts` (`TILE_BACK_ASSET`), `src/render/TileSprite.ts` (`setDimmed`), `src/render/BoardView.ts`.
+
+### Open edge case, accepted (not fixed in this pass)
+Axe's shatter effect (D12) nulls one adjacent tile directly (`weaponEffects.ts`) without going through `resolveMatches`' match-group loop, so a shattered tile's removal never itself triggers `revealFogNeighbors`. In a specific unlucky sequence — every boundary-row tile between Surface and Relic disappearing via shatter rather than ever being a match's own cell — the Relic band directly below could in theory stay fully fogged (and therefore fully inert, D22) after Surface fully clears, stalling further matches on that floor. This is judged low-probability (shatter removes one non-participating tile per Axe swing; the swing's own match still triggers a reveal for its own neighbors) and is accepted rather than special-cased, on the same reasoning D9 already accepts for board depletion generally: this project has never guaranteed a floor stays solvable move-to-move (no "at least one valid move" check exists for Phase 1–3 either), and adding one now would be scope beyond what Phase 4 asked for. Flagged here for the record, not silently ignored, per this project's own no-assumptions rule.

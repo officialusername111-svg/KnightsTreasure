@@ -18,11 +18,12 @@
 4. [Tile Taxonomy](#tile-taxonomy)
 5. [Weapon Behaviors](#weapon-behaviors)
 6. [Meters](#meters)
-7. [Board Depletion & Strata](#board-depletion--strata)
-8. [Banners (9 Knightly Orders)](#banners-9-knightly-orders)
-9. [State Model](#state-model)
-10. [Implementation Status](#implementation-status)
-11. [Technical Foundation](#technical-foundation)
+7. [Fog & Torchlight](#fog--torchlight-phase-4)
+8. [Board Depletion & Strata](#board-depletion--strata)
+9. [Banners (9 Knightly Orders)](#banners-9-knightly-orders)
+10. [State Model](#state-model)
+11. [Implementation Status](#implementation-status)
+12. [Technical Foundation](#technical-foundation)
 
 ---
 
@@ -34,8 +35,8 @@ Knight's Treasure is a **match-3 dungeon-heist battler**. The player is a knight
 
 ## The Six Signature Mechanics
 
-1. **Torchlit board** *(Phase 4, not yet built)* — part of the board starts face-down (fog). Matching at the light's frontier flips neighboring fog tiles face-up. Some enemies re-shroud seen tiles.
-2. **Heist, not a fight** *(hoard/gold banking — built; greed's guardian-reaction — Phase 3)* — the guardian's hoard sits on the board as treasure tiles. Stealing them is the goal; slaying the guardian is optional. Every theft raises a **greed meter** that will make the guardian stronger and more aggressive once Phase 3 lands.
+1. **Torchlit board** *(built — the enemy re-shrouding half is Phase 6)* — part of the board starts face-down (fog). Matching at the light's frontier flips neighboring fog tiles face-up. Some enemies re-shroud seen tiles (Phase 6, not yet built).
+2. **Heist, not a fight** *(built)* — the guardian's hoard sits on the board as treasure tiles. Stealing them is the goal; slaying the guardian is optional (and now auto-escapes you with the loot). Every theft raises a **greed meter** that makes the guardian stronger and more aggressive.
 3. **Depleting floors** *(built)* — tiles do **not** refill from the top. Each floor is a finite board; clearing tiles exposes the **stratum** beneath (common gear near the surface → relics deeper → vault at the bottom). Matching literally digs downward. Empty floor = descend.
 4. **You wield what you match** *(built)* — weapon matches *are* the attack (each weapon type behaves differently). Food matches refill a draining **rations** meter, not a health bar.
 5. **Banners** *(Phase 5, not yet built)* — before each run the player swears to one knightly order (from the 9 heraldic animals). Each banner is a build-defining passive. One per run.
@@ -73,7 +74,7 @@ The tension the whole game is built around: **push deeper for more, or bolt now 
 | **Food** | `bread`, `cheese`, `grapes`, `mushroom`, `turkey`, `wheat`, `acorn` | Refills the **rations** meter. Bigger matches refill more. |
 | **Hoard** | 4 surface / 6 relic / 5 vault kinds (see decisions doc D11) | Banks gold **and** raises greed. Relics/vault worth more than surface coins. |
 | **Emblem** | the 9 heraldic animals | Charges the sworn **banner's** power (Phase 5 — charge accrues now, nothing spends it yet). |
-| **Light** | `candle` | Widens torchlight (Phase 4 — no-op until fog exists). |
+| **Light** | `candle` | Widens torchlight: reveals a full ring of fog neighbors instead of just a cross (built, D23). |
 | **Hazard** | *(none committed yet)* | Not player-matchable; spawned by enemies (Phase 6). No hazard art exists yet. |
 
 All 45 committed tile icons are mapped — see the decisions doc D11 for the exact table, including the one-time `tile_sword.png` art promotion.
@@ -98,6 +99,10 @@ Exact numbers live in `src/logic/data/balance.ts` (the single tunable source —
 ## Guardian & Greed (Phase 3)
 
 The guardian's `rage`/`armor` are recomputed every turn from `meters.greed` (`rage = min(10, floor(greed/25))`, `armor = min(20, rage*2)`) — the angrier the greed, the more armor blunts non-armor-ignoring hits (Bow's armor-ignore finally means something). Every 4 turnCounter-units (the same counter weapon `turnCost` advances — Dagger's low cost buys more swings between retaliations), the guardian counter-attacks the knight for `6 + rage*2` damage, ×1.5 while exhausted. The knight has its own persistent `hp`/`maxHp` (100, never reset by `descend()`), separate from rations. Guardian hp hitting 0 auto-escapes with full loot banked; knight hp hitting 0 ends the run (`dead`). The player can also hit "Escape with loot" at any time. See decisions doc D16–D20.
+
+## Fog & Torchlight (Phase 4)
+
+The Surface band starts lit; Relic and Vault start face-down (fog) — the same row boundary `bandForRow()` already defines for strata, so fog and stratum can never drift apart. A face-down tile is inert: `findMatches` treats it as a gap, the same as an empty cell, so it can't be matched until revealed. Any match flips the 4 orthogonal fog neighbors of its matched cells to lit; a candle (Light role) match widens that to the full 8-neighbor ring. Fogged cells render `tile_back.png`, dimmed, swapped for the real texture once revealed — no flip animation yet. See decisions doc D21–D24.
 
 ## Board Depletion & Strata
 
@@ -134,7 +139,7 @@ interface Tile { id: string; role: Role; kind: string; faceDown: boolean; value?
 
 interface GameState {
   board: (Tile | null)[][];
-  torchlight: boolean[][];   // all-true stub until Phase 4
+  torchlight: boolean[][];   // per-cell lit/fogged; surface-band-lit at floor start, D21
   stratum: number;
   floor: number;
   banner: string;            // unused stub until Phase 5
@@ -148,7 +153,7 @@ interface GameState {
 }
 ```
 
-Core pure actions (`(state, input) => newState`, no rendering dependency — unit-tested in `tests/logic/**`): `swap`, `resolveMatches`, `guardianTurn` (Phase 3 stub), `descend`, `useBanner` (Phase 5 stub), `escape`.
+Core pure actions (`(state, input) => newState`, no rendering dependency — unit-tested in `tests/logic/**`): `swap`, `resolveMatches`, `guardianTurn`, `descend`, `useBanner` (Phase 5 stub), `escape`.
 
 ## Implementation Status
 
@@ -157,7 +162,7 @@ Core pure actions (`(state, input) => newState`, no rendering dependency — uni
 | 1 — Match-3 core (typed tiles, weapon/food/hoard effects, dummy guardian) | **Built & verified** |
 | 2 — Depletion & descent (strata, no-refill, floor growth) | **Built & verified** |
 | 3 — Guardian & greed (rage-scaled counter-attack, real win/lose) | **Built & verified** |
-| 4 — Fog & torchlight | Not started — stubs in place (`torchlight`, `Tile.faceDown`) |
+| 4 — Fog & torchlight | **Built & verified** |
 | 5 — Banners | Not started — stubs in place (`banner`, `bannerCharge`, `meters.valor`, `useBanner()`) |
 | 6 — Memory-attacking enemies | Not started — `hazard` role has no kinds/art yet |
 
