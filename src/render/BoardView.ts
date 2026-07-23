@@ -2,7 +2,7 @@ import { Container, Assets } from 'pixi.js';
 import type { Coord, GameState } from '../logic/types';
 import { isAdjacent } from '../logic/board';
 import { TileSprite } from './TileSprite';
-import { TILE_ASSET_MANIFEST } from './assetManifest';
+import { TILE_ASSET_MANIFEST, TILE_BACK_ASSET } from './assetManifest';
 
 export interface BoardViewOptions {
   onSwapIntent: (a: Coord, b: Coord) => void;
@@ -27,7 +27,7 @@ export class BoardView {
   constructor(private options: BoardViewOptions) {}
 
   async preload(): Promise<void> {
-    await Assets.load(Object.values(TILE_ASSET_MANIFEST));
+    await Assets.load([...Object.values(TILE_ASSET_MANIFEST), TILE_BACK_ASSET]);
   }
 
   resize(width: number, height: number, cols: number, rows: number): void {
@@ -65,7 +65,7 @@ export class BoardView {
         }
 
         seen.add(key);
-        const texture = Assets.get(TILE_ASSET_MANIFEST[tile.kind]);
+        const texture = Assets.get(tile.faceDown ? TILE_BACK_ASSET : TILE_ASSET_MANIFEST[tile.kind]);
         let sprite = this.sprites.get(key);
 
         if (!sprite) {
@@ -80,6 +80,7 @@ export class BoardView {
         } else {
           sprite.setTexture(texture);
         }
+        sprite.setDimmed(tile.faceDown);
       }
     }
 

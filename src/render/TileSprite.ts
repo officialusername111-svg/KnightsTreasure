@@ -30,6 +30,10 @@ export class TileSprite extends Container {
     this.art.texture = texture;
   }
 
+  setDimmed(dimmed: boolean): void {
+    this.art.tint = dimmed ? 0x8a8a8a : 0xffffff;
+  }
+
   setHighlight(size: number, mode: HighlightMode): void {
     this.highlight.clear();
     if (mode === 'none') return;
