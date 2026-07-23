@@ -2,8 +2,9 @@ import type { Coord, GameState } from '../logic/types';
 import { swap } from '../logic/actions/swap';
 import { guardianTurn } from '../logic/actions/guardianTurn';
 import { descend } from '../logic/actions/descend';
+import { escape } from '../logic/actions/escape';
 import { createInitialState } from '../logic/state';
-import { isGuardianDefeated, isFloorFullyCleared } from '../logic/selectors';
+import { isFloorFullyCleared } from '../logic/selectors';
 import type { BoardView } from '../render/BoardView';
 import type { HudView } from '../render/HudView';
 
@@ -37,16 +38,25 @@ export class GameController {
   }
 
   handleSwapIntent = (a: Coord, b: Coord): void => {
+    if (this.state.status !== 'playing') return;
+
     let next = swap(this.state, a, b);
     if (next === this.state) return;
 
     next = guardianTurn(next);
 
-    if (isFloorFullyCleared(next)) {
+    if (next.status === 'playing' && isFloorFullyCleared(next)) {
       next = descend(next);
     }
 
     this.state = next;
+    this.render();
+  };
+
+  handleEscapeIntent = (): void => {
+    if (this.state.status !== 'playing') return;
+
+    this.state = escape(this.state);
     this.render();
   };
 
@@ -58,6 +68,6 @@ export class GameController {
     const rows = this.state.board.length;
     this.boardView.resize(this.width, this.height, cols, rows);
     this.boardView.sync(this.state);
-    this.hudView.sync(this.state, isGuardianDefeated(this.state));
+    this.hudView.sync(this.state);
   }
 }

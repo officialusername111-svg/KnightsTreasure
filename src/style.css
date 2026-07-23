@@ -90,6 +90,10 @@ body {
   transition: transform 0.25s ease;
 }
 
+.bar-fill.knight {
+  background: linear-gradient(180deg, #f1c26b, #a86a1c);
+}
+
 .bar-fill.guardian {
   background: linear-gradient(180deg, #e14b3a, #9c1f14);
 }
@@ -165,19 +169,48 @@ body {
   display: block;
 }
 
-/* ---------- Win banner ---------- */
+/* ---------- Escape action ---------- */
+#escape-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(20, 14, 10, 0.78);
+  border: 1px solid rgba(244, 217, 138, 0.5);
+  border-radius: 10px;
+  padding: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: #f4d98a;
+  cursor: pointer;
+}
+
+#escape-btn:hover {
+  background: rgba(35, 24, 16, 0.85);
+  border-color: rgba(244, 217, 138, 0.85);
+}
+
+#escape-btn:active {
+  transform: scale(0.98);
+}
+
+/* ---------- Result banner ---------- */
 #banner {
   position: absolute;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%) scale(0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 220px;
+  text-align: center;
   background: rgba(20, 14, 10, 0.92);
   border: 1px solid rgba(244, 217, 138, 0.6);
   border-radius: 12px;
   padding: 16px 28px;
-  font-size: 16px;
-  font-weight: 600;
-  color: #f4d98a;
   opacity: 0;
   pointer-events: none;
   transition:
@@ -189,4 +222,27 @@ body {
 #banner.visible {
   opacity: 1;
   transform: translate(-50%, -50%) scale(1);
+}
+
+#banner .banner-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+#banner .banner-sub {
+  font-size: 12px;
+  font-weight: 400;
+  color: #d9c39a;
+}
+
+#banner.victory .banner-title {
+  color: #f4d98a;
+}
+
+#banner.defeat .banner-title {
+  color: #e8756a;
+}
+
+#banner.defeat {
+  border-color: rgba(225, 75, 58, 0.7);
 }

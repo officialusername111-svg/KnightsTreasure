@@ -17,7 +17,9 @@ async function bootstrap(): Promise<void> {
   await boardView.preload();
   app.stage.addChild(boardView.container);
 
-  const hudView = new HudView(content);
+  const hudView = new HudView(content, {
+    onEscapeIntent: () => controller.handleEscapeIntent(),
+  });
 
   const controller = new GameController(boardView, hudView, Date.now());
   controller.start(boardWrap.clientWidth, boardWrap.clientHeight);

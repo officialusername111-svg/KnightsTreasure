@@ -20,6 +20,11 @@
             </div>
           </div>
           <div class="hud-row">
+            <div class="hud-label">Knight</div>
+            <div class="bar-track"><div class="bar-fill knight" data-hud="knight-bar"></div></div>
+            <div class="hud-value" data-hud="knight-value">100/100</div>
+          </div>
+          <div class="hud-row">
             <div class="hud-label">Guardian</div>
             <div class="bar-track"><div class="bar-fill guardian" data-hud="guardian-bar"></div></div>
             <div class="hud-value" data-hud="guardian-value">300/300</div>
@@ -38,7 +43,12 @@
 
         <div id="board-wrap"></div>
 
-        <div id="banner" data-hud="banner">Guardian defeated!</div>
+        <button id="escape-btn" data-hud="escape-btn">🏃 Escape with loot</button>
+
+        <div id="banner" data-hud="banner">
+          <div class="banner-title" data-hud="banner-title"></div>
+          <div class="banner-sub" data-hud="banner-sub"></div>
+        </div>
       </div>
     </div>
     <script type="module" src="/src/main.ts"></script>
