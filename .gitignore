@@ -7,7 +7,7 @@ dist/
 # Reference prototype (has its own git history)
 temp_clone/
 
-# Transient asset staging — final art is committed under www/assets/images/
+# Transient asset staging — final art is committed under public/images/
 .claude/assets/
 .claude/_new_assets/
 .claude/_new_assets_2/
@@ -17,3 +17,4 @@ temp_clone/
 .claude/projects/
 .claude/settings.local.json
 .gstack/
+.impeccable/

@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "kt",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["--yes", "serve", "www", "-l", "5600"],
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "--port", "5600", "--strictPort"],
       "port": 5600
     }
   ]
