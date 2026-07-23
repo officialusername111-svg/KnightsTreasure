@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Knight's Treasure</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="stage">
+      <div id="bg"></div>
+      <div id="vignette"></div>
+      <div id="content">
+        <div id="hud">
+          <div class="hud-top-line">
+            <div class="floor-chip" data-hud="floor-chip">Floor 1 · Stratum 0</div>
+            <div class="gold-chip">
+              <img src="/images/ui/ui_coin.png" alt="" />
+              <span data-hud="gold-value">0</span>
+            </div>
+          </div>
+          <div class="hud-row">
+            <div class="hud-label">Guardian</div>
+            <div class="bar-track"><div class="bar-fill guardian" data-hud="guardian-bar"></div></div>
+            <div class="hud-value" data-hud="guardian-value">300/300</div>
+          </div>
+          <div class="hud-row">
+            <div class="hud-label">Rations</div>
+            <div class="bar-track"><div class="bar-fill rations" data-hud="rations-bar"></div></div>
+            <div class="hud-value" data-hud="rations-value">10/10</div>
+          </div>
+          <div class="hud-row">
+            <div class="hud-label">Greed</div>
+            <div class="bar-track"><div class="bar-fill greed" data-hud="greed-bar"></div></div>
+            <div class="hud-value" data-hud="greed-value">0</div>
+          </div>
+        </div>
+
+        <div id="board-wrap"></div>
+
+        <div id="banner" data-hud="banner">Guardian defeated!</div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

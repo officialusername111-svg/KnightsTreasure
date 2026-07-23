@@ -1,0 +1,192 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: #0d0906;
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  color: #f1e6d0;
+}
+
+#stage {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  min-height: 100vh;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+#bg {
+  position: absolute;
+  inset: 0;
+  background: url('/images/backgrounds/bg_stage10_vault.png') center/cover no-repeat;
+  filter: brightness(0.38) saturate(0.85);
+}
+
+#vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 35%, rgba(0, 0, 0, 0.75) 100%);
+}
+
+#content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 10px 10px 16px;
+  gap: 10px;
+}
+
+/* ---------- HUD ---------- */
+#hud {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(20, 14, 10, 0.72);
+  border: 1px solid rgba(212, 175, 90, 0.35);
+  border-radius: 10px;
+  padding: 8px 10px;
+  backdrop-filter: blur(2px);
+}
+
+.hud-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hud-label {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #c9a869;
+  width: 58px;
+  flex-shrink: 0;
+}
+
+.bar-track {
+  flex: 1;
+  height: 12px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(0, 0, 0, 0.6);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  width: 100%;
+  height: 100%;
+  border-radius: 6px 0 0 6px;
+  transform: scaleX(1);
+  transform-origin: left;
+  transition: transform 0.25s ease;
+}
+
+.bar-fill.guardian {
+  background: linear-gradient(180deg, #e14b3a, #9c1f14);
+}
+
+.bar-fill.rations {
+  background: linear-gradient(180deg, #8fc24a, #4d7e1f);
+}
+
+.bar-fill.greed {
+  background: linear-gradient(180deg, #b06fe0, #6a2f9c);
+}
+
+.hud-value {
+  font-size: 11px;
+  color: #f1e6d0;
+  width: 52px;
+  text-align: right;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-top-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #d9c39a;
+}
+
+.gold-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(212, 175, 90, 0.4);
+  border-radius: 999px;
+  padding: 2px 10px 2px 4px;
+}
+
+.gold-chip img {
+  width: 18px;
+  height: 18px;
+}
+
+.gold-chip span {
+  font-weight: 600;
+  color: #f4d98a;
+}
+
+.floor-chip {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(212, 175, 90, 0.25);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 11px;
+  color: #c9a869;
+}
+
+/* ---------- Board ---------- */
+#board-wrap {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 7, 5, 0.55);
+  border: 1px solid rgba(212, 175, 90, 0.3);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+#board-wrap canvas {
+  display: block;
+}
+
+/* ---------- Win banner ---------- */
+#banner {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(0.9);
+  background: rgba(20, 14, 10, 0.92);
+  border: 1px solid rgba(244, 217, 138, 0.6);
+  border-radius: 12px;
+  padding: 16px 28px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #f4d98a;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+  z-index: 3;
+}
+
+#banner.visible {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
