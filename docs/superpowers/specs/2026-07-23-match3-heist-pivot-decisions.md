@@ -1,7 +1,7 @@
 # Knight's Treasure — Match-3 Heist Pivot: Decisions & Mechanics Specification
 
-> **Status:** Authoritative for the match-3 dungeon-heist rework. Covers Phase 1 (match-3 core) and Phase 2 (depletion & descent) only — Phases 3–6 (guardian/greed reaction, fog/torchlight, banners, memory-attacking enemies) are named where the code leaves a hook for them, not designed here. Supersedes `docs/superpowers/specs/archive/2026-06-21-knights-treasure-design-decisions.md` (the memory-match design) for everything except the still-active asset-production docs (asset manifest, prompt packs, character prompts — see `docs/superpowers/specs/`, not archived).
-> **Date:** 2026-07-23 · **Owner review:** pending — the pivot itself ("full pivot — replace current game") and three governing calls (archive not delete; TypeScript + PixiJS; scope Phase 1+2) were made explicitly by the owner. Everything below is my execution of those calls, delegated per this project's own rule ("delegated ≠ silent — every decision is written down").
+> **Status:** Authoritative for the match-3 dungeon-heist rework. Covers Phase 1 (match-3 core), Phase 2 (depletion & descent), and Phase 3 (guardian & greed reaction) — Phases 4–6 (fog/torchlight, banners, memory-attacking enemies) are named where the code leaves a hook for them, not designed here. Supersedes `docs/superpowers/specs/archive/2026-06-21-knights-treasure-design-decisions.md` (the memory-match design) for everything except the still-active asset-production docs (asset manifest, prompt packs, character prompts — see `docs/superpowers/specs/`, not archived).
+> **Date:** 2026-07-23 (Parts A–E), 2026-07-23 addendum (Part F, Phase 3) · **Owner review:** Part F's mechanics + UI mockup approved live in chat before implementation. Everything below is my execution of the owner's calls, delegated per this project's own rule ("delegated ≠ silent — every decision is written down").
 
 Each decision: **D#** — the decision · **Why** · **Affects**.
 
@@ -119,9 +119,53 @@ Armor is stubbed at 0 for Phase 1/2 (so Bow ≈ Sword numerically), but the igno
 
 ## Part E — Explicit Phase 3–6 hooks left in the code (not designed here)
 
-- `guardian.rage`, `guardian.armor` (armor stubbed at 0) — Phase 3.
-- `guardianTurn()` — pure passthrough stub; shape locked (`(state) => state`) so Phase 3 fills in the rage-scaled counter-attack without touching call sites in `GameController`.
+- `guardian.rage`, `guardian.armor`, `guardianTurn()` — **built, see Part F** (was Phase 3's stub; the shape-lock paid off, Part F filled it in without touching `GameController`'s call site).
 - `torchlight: boolean[][]` — always all-`true`; `Tile.faceDown` always `false` — Phase 4.
 - `banner: string`, `bannerCharge: number`, `meters.valor` — charged by emblem matches now, spent by nothing yet; `useBanner()` no-ops (deliberately, not a throw) — Phase 5.
 - `Role: 'hazard'`, `HAZARD_KINDS: []` — Phase 6, needs new art before any hazard tile can spawn.
 - `tile_wildcard.png` — unassigned, open question, not decided in this pass.
+
+---
+
+## Part F — Phase 3: Guardian & greed reaction (2026-07-23 addendum)
+
+Turns Phase 1's "damage the guardian to 0" placeholder win condition into the GDD's real resolution: escape-with-loot (win) or the knight falling (lose), with the guardian getting angrier — and tougher — the more you steal.
+
+### D16 — `knight: { hp, maxHp }` (new top-level state, extension)
+**Decision:** `GameState` gains a `knight: Knight` field (`Knight = { hp: number; maxHp: number }`), initialized once in `createInitialState` (`KNIGHT_BALANCE.hpBase`, currently 100) and never reset by `descend()` — it persists across floors the same way `gold`/`meters.greed`/`meters.rations` already do, because `descend()` only resets the guardian (a per-floor entity), never the player's own run-state. No healing mechanic exists yet; a real heal is deliberately left for a later banner (the GDD's "Bear" banner, "reduces incoming guardian damage," is a natural fit and needs no state-model change when it lands).
+**Why:** The GDD's own Core Loop text draws a contrast — "Food matches refill a draining rations meter, **not a health bar**" — which only makes sense if a real health bar exists elsewhere for it to not be. Rations already had a clear job (turn-economy resource); overloading it as the knight's life total would contradict that line and blur two mechanics into one. A dedicated stat mirrors `guardian.hp`/`maxHp` and needed no new pattern (extension, same shape as D5–D7).
+**Affects:** `src/logic/types.ts`, `src/logic/state.ts`, `src/logic/data/balance.ts` (`KNIGHT_BALANCE`).
+
+### D17 — Guardian `rage`/`armor` derive from `meters.greed`, recomputed every turn
+**Decision:** `guardianTurn()` recomputes both fields from the current (persistent, never-reset) greed total on every call:
+```
+rage  = min(MAX_RAGE, floor(greed / RAGE_DIVISOR))       // RAGE_DIVISOR=25, MAX_RAGE=10
+armor = min(MAX_ARMOR, rage * ARMOR_PER_RAGE)             // ARMOR_PER_RAGE=2, MAX_ARMOR=20
+```
+`guardian.rage`/`guardian.armor` stay stored fields (not computed at every read site) for the same reason as `maxHp` (D6) — `HudView` and any future UI read them without re-deriving. `descend()`'s `armor: GUARDIAN_BALANCE.armor` reset (now unused as a flat constant — see below) and `rage: 0` reset are harmless: the very next `guardianTurn()` call overwrites both from the (carried-over) greed total, so a fresh floor's guardian is exactly as enraged as the run's accumulated greed says it should be, not reset to calm.
+**Why:** Directly implements the GDD's "greed... will make the guardian stronger and more aggressive" using only systems Phase 1/2 already built (greed already existed and already never resets) — no new meter. Tying `armor` to rage rather than a flat per-floor constant is what finally makes armor *matter*: `weaponEffects.ts` has subtracted `state.guardian.armor` from non-armor-ignoring hits since Phase 1/2, but `GUARDIAN_BALANCE.armor` was hardcoded to 0, so the subtraction was always a no-op and Bow's `ignoresArmor` flag had nothing to ignore. Making armor rage-scaled turns Bow into a real tradeoff (guaranteed full damage vs. Sword/Axe's higher raw numbers that erode as the run gets greedier) — exactly the kind of choice the weapon variety was meant to create.
+**Affects:** `src/logic/actions/guardianTurn.ts`, `src/logic/data/balance.ts` (`GUARDIAN_BALANCE`: adds `rageDivisor`, `maxRage`, `armorPerRage`, `maxArmor`; the old flat `armor: 0` constant is removed since armor is now always derived).
+
+### D18 — Counter-attack cadence reuses `guardian.turnCounter`, not a new clock
+**Decision:** `guardianTurn()` runs on every resolved swap (already wired unconditionally in `GameController.handleSwapIntent`, matching D13's "a turn = one resolved swap"). It accumulates against `guardian.turnCounter` — the same counter weapon `turnCost` already advances (D12) — rather than introducing a second turn-tracking field:
+```
+ATTACK_INTERVAL = 4
+if (turnCounter >= ATTACK_INTERVAL) {
+  turnCounter -= ATTACK_INTERVAL   // carries remainder, doesn't clamp to 0
+  damage = round((BASE_COUNTER_DAMAGE + rage * RAGE_DAMAGE_PER_LEVEL) * (exhausted ? EXHAUSTED_DAMAGE_MULTIPLIER : 1))
+  knight.hp = max(0, knight.hp - damage)
+}
+```
+`BASE_COUNTER_DAMAGE = 6`, `RAGE_DAMAGE_PER_LEVEL = 2`, `EXHAUSTED_DAMAGE_MULTIPLIER = 1.5`. If `knight.hp` reaches 0, `status` becomes `'dead'`.
+**Why:** Reusing `turnCounter` turns weapon choice into an emergent pacing decision for free: Dagger's `turnCost: 1` buys more swings between guardian counter-attacks than Sword/Axe/Bow's `turnCost: 2`, directly realizing D12's "[Dagger] advances the guardian's turn the least" as a real defensive tradeoff instead of just a flavor note. Carrying the remainder (rather than resetting to 0) keeps the pacing exact over a long run instead of drifting. The `exhausted` multiplier is what the GDD promised for Phase 3 ("Phase 3 will attach a real gameplay penalty" to the flag D5 introduced) — a starving knight (0 rations) takes 50% more damage, giving rations real stakes beyond "can't refill more."
+**Affects:** `src/logic/actions/guardianTurn.ts`, `src/logic/data/balance.ts` (`GUARDIAN_BALANCE`: adds `attackInterval`, `baseCounterDamage`, `rageDamagePerLevel`, `exhaustedDamageMultiplier`).
+
+### D19 — Guardian defeat auto-escapes with full loot; explicit `escape()` wired to a button
+**Decision:** `guardianTurn()` checks `isGuardianDefeated(state)` first, before any counter-attack logic: if true, it returns `{ ...state, status: 'escaped' }` and does nothing else (a dead guardian can't retaliate). This makes "damage the guardian to 0" one of two ways to reach the real win state, alongside the player voluntarily calling the already-built `escape()` action (now wired to a new "Escape with loot" HUD button, live throughout play). Once `status !== 'playing'`, `guardianTurn()` is a no-op and `GameController.handleSwapIntent` rejects further swap input — the run is over.
+**Why:** The GDD's own Core Loop text calls guardian-hp-to-zero "Phase 1's win condition **today**" and explicitly says real resolution is Phase 3's job — it doesn't say slaying stops mattering, and "Heist, not a fight... slaying the guardian is optional" only requires that killing it not be *required*, not that it does nothing. Auto-escaping on defeat (rather than "counter-attacks stop, keep playing") keeps the win/lose surface to exactly two states (`escaped`/`dead`) instead of a third "guardian dead but run continues" limbo the GDD never describes, and it's the reading a player would expect: no guardian left, nothing stopping you from walking out with everything you've found.
+**Affects:** `src/logic/actions/guardianTurn.ts`, `src/app/GameController.ts` (status guard + escape input), `index.html`/`src/style.css` (`#escape-btn`).
+
+### D20 — Result banner: two variants, both reachable from the existing `#banner` element
+**Decision:** The single `#banner` element (previously only "Guardian defeated!", Phase 1 placeholder) becomes a two-variant result banner (`.victory` / `.defeat` CSS classes, matching the approved mockup `mockup-phase3.html`), each with a title and a gold/floor subline (`"1,240 gold banked · reached floor 3"` / `"580 gold lost to the vault · reached floor 2"`). `HudView.sync()` picks the variant from `state.status` (`'escaped'` → victory, `'dead'` → defeat) instead of the old `guardianDefeated` boolean parameter. A new "Knight" HUD bar row (gold gradient, same `bar-track`/`bar-fill` pattern as the other three meters) renders `knight.hp`/`maxHp`.
+**Why:** Reuses the existing banner element and its transition/positioning exactly rather than adding a second overlay — only the content and a variant class are new, kept simple per the mockup gate the owner approved before any of Part F's real code was written (global CLAUDE.md's UI sample-and-approve rule).
+**Affects:** `src/render/HudView.ts`, `index.html`, `src/style.css`.

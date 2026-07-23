@@ -57,11 +57,11 @@ Floor depletes → stratum exposed  │
    ↓                              │
 Floor empties → descend ──────────┘  (repeat, deeper & bigger)
    ↓
-Damage the guardian to 0 = Phase 1's win condition today.
-(Escape-with-loot / knight-falls resolution is Phase 3.)
+Escape with loot (voluntary, or automatic if the guardian falls) = win.
+The knight falling to the guardian's counter-attack = lose.
 ```
 
-The tension the whole game is built around: **push deeper for more, or bolt now and keep what you have** (bolt/escape resolution lands with Phase 3's real lose conditions).
+The tension the whole game is built around: **push deeper for more, or bolt now and keep what you have** — real stakes now that the guardian counter-attacks and the knight can actually fall (Phase 3, built).
 
 ---
 
@@ -85,15 +85,19 @@ All 45 committed tile icons are mapped — see the decisions doc D11 for the exa
 | Dagger | Strikes twice, fast — low damage per hit, advances the guardian's turn the least | 2×8 dmg, turnCost 1 |
 | Sword | Balanced single strike | 20 dmg (+8/extra tile), turnCost 2 |
 | Axe | Cleaves: damages the guardian **and** shatters one adjacent tile (helps dig) | 18 dmg (+6/extra tile), turnCost 2 |
-| Bow | Ranged: ignores the guardian's armor | 20 dmg (+8/extra tile), turnCost 2, armor-ignoring |
+| Bow | Ranged: ignores the guardian's armor (real now that armor scales with rage — D17) | 20 dmg (+8/extra tile), turnCost 2, armor-ignoring |
 
 Exact numbers live in `src/logic/data/balance.ts` (the single tunable source — nothing else hardcodes weapon damage). See decisions doc D12.
 
 ## Meters
 
-- **Rations** — drains by 1 each turn (each resolved swap). Refilled by food matches, scaled by match size. Hits 0 → `exhausted` flag set (Phase 3 will attach a real gameplay penalty; the flag itself is live now). *Per-run, persists across floors.*
-- **Greed** — rises with every hoard theft (1:1 with gold banked, tunable). Does **not** reset between floors. Guardian reaction to greed is Phase 3. *Per-run.*
+- **Rations** — drains by 1 each turn (each resolved swap). Refilled by food matches, scaled by match size. Hits 0 → `exhausted` flag set, which now multiplies the guardian's counter-attack damage ×1.5 (Phase 3's real penalty). *Per-run, persists across floors.*
+- **Greed** — rises with every hoard theft (1:1 with gold banked, tunable). Does **not** reset between floors. Drives the guardian's `rage` and `armor` every turn (Phase 3, built). *Per-run.*
 - **Valor** — charged by emblem matches. Spent on the banner power once Phase 5 exists; `useBanner()` currently no-ops. *Per-run.*
+
+## Guardian & Greed (Phase 3)
+
+The guardian's `rage`/`armor` are recomputed every turn from `meters.greed` (`rage = min(10, floor(greed/25))`, `armor = min(20, rage*2)`) — the angrier the greed, the more armor blunts non-armor-ignoring hits (Bow's armor-ignore finally means something). Every 4 turnCounter-units (the same counter weapon `turnCost` advances — Dagger's low cost buys more swings between retaliations), the guardian counter-attacks the knight for `6 + rage*2` damage, ×1.5 while exhausted. The knight has its own persistent `hp`/`maxHp` (100, never reset by `descend()`), separate from rations. Guardian hp hitting 0 auto-escapes with full loot banked; knight hp hitting 0 ends the run (`dead`). The player can also hit "Escape with loot" at any time. See decisions doc D16–D20.
 
 ## Board Depletion & Strata
 
@@ -136,9 +140,10 @@ interface GameState {
   banner: string;            // unused stub until Phase 5
   bannerCharge: number;
   meters: { rations: number; greed: number; valor: number; exhausted: boolean }; // exhausted: extension, D5
-  guardian: { hp: number; maxHp: number; armor: number; rage: number; turnCounter: number };  // maxHp: extension, D6
+  guardian: { hp: number; maxHp: number; armor: number; rage: number; turnCounter: number };  // maxHp: extension, D6; armor/rage: derived per-turn, D17
+  knight: { hp: number; maxHp: number };  // extension, D16 — persists across floors
   gold: number;
-  status: 'playing' | 'escaped' | 'dead';  // 'escaped'/'dead' resolution is Phase 3
+  status: 'playing' | 'escaped' | 'dead';  // real win/lose resolution, D18-D19
   rngSeed: number;           // extension, D7 — keeps every action a pure function
 }
 ```
@@ -151,7 +156,7 @@ Core pure actions (`(state, input) => newState`, no rendering dependency — uni
 |---|---|
 | 1 — Match-3 core (typed tiles, weapon/food/hoard effects, dummy guardian) | **Built & verified** |
 | 2 — Depletion & descent (strata, no-refill, floor growth) | **Built & verified** |
-| 3 — Guardian & greed (rage-scaled counter-attack, real win/lose) | Not started — stubs in place (`guardian.rage`, `guardian.armor`, `guardianTurn()`) |
+| 3 — Guardian & greed (rage-scaled counter-attack, real win/lose) | **Built & verified** |
 | 4 — Fog & torchlight | Not started — stubs in place (`torchlight`, `Tile.faceDown`) |
 | 5 — Banners | Not started — stubs in place (`banner`, `bannerCharge`, `meters.valor`, `useBanner()`) |
 | 6 — Memory-attacking enemies | Not started — `hazard` role has no kinds/art yet |
