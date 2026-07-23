@@ -47,6 +47,13 @@ export interface Knight {
 
 export type RunStatus = 'playing' | 'escaped' | 'dead';
 
+/** Reported (not stored on GameState — purely an outward notification for onboarding/UI,
+ * never persisted or replayed) once per resolved match group / fog reveal during
+ * resolveMatches(). See pivot decisions doc D25. */
+export type MatchEvent =
+  | { kind: 'match'; role: Role; tileKind: string; cells: Coord[] }
+  | { kind: 'reveal'; cells: Coord[] };
+
 export interface GameState {
   board: (Tile | null)[][];
   torchlight: boolean[][];

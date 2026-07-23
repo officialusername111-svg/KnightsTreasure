@@ -121,15 +121,19 @@ const DIAGONAL_DIRS: Coord[] = [
 ];
 
 /** Flips face-down neighbors of a resolved match's cells to lit, in place. `widen`
- * (candle/Light matches) also includes diagonals — a ring instead of a cross.
- * See pivot decisions doc D23. */
+ * (candle/Light matches) also includes diagonals — a ring instead of a cross. Returns
+ * the coords actually flipped (empty if none were fogged) — purely so callers (the
+ * onboarding coach-mark trigger, D25) can report which tile just got revealed without
+ * re-deriving this scan; the fog logic itself is unchanged. See pivot decisions doc D23.
+ */
 export function revealFogNeighbors(
   board: (Tile | null)[][],
   torchlight: boolean[][],
   matchedCells: Coord[],
   widen: boolean,
-): void {
+): Coord[] {
   const dirs = widen ? [...ORTHOGONAL_DIRS, ...DIAGONAL_DIRS] : ORTHOGONAL_DIRS;
+  const revealed: Coord[] = [];
   for (const cell of matchedCells) {
     for (const dir of dirs) {
       const row = cell.row + dir.row;
@@ -139,8 +143,10 @@ export function revealFogNeighbors(
       if (!tile || !tile.faceDown) continue;
       board[row][col] = { ...tile, faceDown: false };
       torchlight[row][col] = true;
+      revealed.push({ row, col });
     }
   }
+  return revealed;
 }
 
 /** How many full bands (surface, then relic) are completely cleared. Does not itself

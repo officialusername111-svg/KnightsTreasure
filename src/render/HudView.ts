@@ -3,6 +3,7 @@ import { FOOD_BALANCE, GREED_BALANCE } from '../logic/data/balance';
 
 export interface HudViewOptions {
   onEscapeIntent: () => void;
+  onTutorialIntent: (triggerEl: HTMLElement) => void;
 }
 
 export class HudView {
@@ -20,6 +21,7 @@ export class HudView {
   private bannerTitle: HTMLElement;
   private bannerSub: HTMLElement;
   private escapeBtn: HTMLElement;
+  private tutorialBtn: HTMLElement;
 
   constructor(root: HTMLElement, options: HudViewOptions) {
     this.knightBar = mustFind(root, '[data-hud="knight-bar"]');
@@ -37,6 +39,9 @@ export class HudView {
     this.bannerSub = mustFind(root, '[data-hud="banner-sub"]');
     this.escapeBtn = mustFind(root, '[data-hud="escape-btn"]');
     this.escapeBtn.addEventListener('click', () => options.onEscapeIntent());
+
+    this.tutorialBtn = mustFind(root, '[data-hud="tutorial-btn"]');
+    this.tutorialBtn.addEventListener('click', () => options.onTutorialIntent(this.tutorialBtn));
   }
 
   sync(state: GameState): void {

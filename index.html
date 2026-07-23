@@ -14,9 +14,12 @@
         <div id="hud">
           <div class="hud-top-line">
             <div class="floor-chip" data-hud="floor-chip">Floor 1 · Stratum 0</div>
-            <div class="gold-chip">
-              <img src="/images/ui/ui_coin.png" alt="" />
-              <span data-hud="gold-value">0</span>
+            <div class="hud-right">
+              <div class="gold-chip" data-hud="gold-chip">
+                <img src="/images/ui/ui_coin.png" alt="" />
+                <span data-hud="gold-value">0</span>
+              </div>
+              <button class="help-btn" data-hud="tutorial-btn" title="How to play" aria-label="How to play">?</button>
             </div>
           </div>
           <div class="hud-row">
@@ -24,12 +27,12 @@
             <div class="bar-track"><div class="bar-fill knight" data-hud="knight-bar"></div></div>
             <div class="hud-value" data-hud="knight-value">100/100</div>
           </div>
-          <div class="hud-row">
+          <div class="hud-row" data-hud="guardian-row">
             <div class="hud-label">Guardian</div>
             <div class="bar-track"><div class="bar-fill guardian" data-hud="guardian-bar"></div></div>
             <div class="hud-value" data-hud="guardian-value">300/300</div>
           </div>
-          <div class="hud-row">
+          <div class="hud-row" data-hud="rations-row">
             <div class="hud-label">Rations</div>
             <div class="bar-track"><div class="bar-fill rations" data-hud="rations-bar"></div></div>
             <div class="hud-value" data-hud="rations-value">10/10</div>
@@ -48,6 +51,21 @@
         <div id="banner" data-hud="banner">
           <div class="banner-title" data-hud="banner-title"></div>
           <div class="banner-sub" data-hud="banner-sub"></div>
+        </div>
+      </div>
+
+      <div id="tutorial-overlay" data-hud="tutorial-overlay" role="dialog" aria-modal="true" aria-labelledby="tutorial-title" inert>
+        <div class="tutorial-card">
+          <button class="tutorial-dismiss" data-hud="tutorial-dismiss" aria-label="Close tutorial">✕</button>
+          <div data-hud="tutorial-content"></div>
+          <div class="tutorial-footer">
+            <div class="tutorial-dots" data-hud="tutorial-dots"></div>
+            <div class="tutorial-actions">
+              <button class="tut-btn skip" data-hud="tutorial-skip">Skip</button>
+              <button class="tut-btn back" data-hud="tutorial-back">Back</button>
+              <button class="tut-btn next" data-hud="tutorial-next">Next</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

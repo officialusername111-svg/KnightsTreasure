@@ -1,4 +1,4 @@
-import type { Coord, GameState } from '../logic/types';
+import type { Coord, GameState, MatchEvent } from '../logic/types';
 import { swap } from '../logic/actions/swap';
 import { guardianTurn } from '../logic/actions/guardianTurn';
 import { descend } from '../logic/actions/descend';
@@ -7,6 +7,7 @@ import { createInitialState } from '../logic/state';
 import { isFloorFullyCleared } from '../logic/selectors';
 import type { BoardView } from '../render/BoardView';
 import type { HudView } from '../render/HudView';
+import type { OnboardingController } from './onboarding/OnboardingController';
 
 export class GameController {
   private state: GameState;
@@ -17,6 +18,7 @@ export class GameController {
     private boardView: BoardView,
     private hudView: HudView,
     seed: number,
+    private onboarding?: OnboardingController,
   ) {
     this.state = createInitialState(seed);
   }
@@ -40,7 +42,8 @@ export class GameController {
   handleSwapIntent = (a: Coord, b: Coord): void => {
     if (this.state.status !== 'playing') return;
 
-    let next = swap(this.state, a, b);
+    const events: MatchEvent[] = [];
+    let next = swap(this.state, a, b, (event) => events.push(event));
     if (next === this.state) return;
 
     next = guardianTurn(next);
@@ -50,6 +53,7 @@ export class GameController {
     }
 
     this.state = next;
+    this.onboarding?.handleTurnEvents(events, next);
     this.render();
   };
 

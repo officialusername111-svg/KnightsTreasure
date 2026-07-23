@@ -94,6 +94,19 @@ export class BoardView {
     this.refreshHighlights();
   }
 
+  /** Local (canvas-space, CSS pixels) rect for a board cell — used by the coach-mark
+   * overlay to anchor a callout at a live tile without that overlay needing to know
+   * anything about Pixi geometry itself. Null before the first resize/layout pass.
+   * See pivot decisions doc D25. */
+  getTileLocalRect(row: number, col: number): { x: number; y: number; size: number } | null {
+    if (this.cellSize <= 0) return null;
+    return {
+      x: this.container.x + col * this.cellSize,
+      y: this.container.y + row * this.cellSize,
+      size: this.cellSize,
+    };
+  }
+
   private handleTap(coord: Coord): void {
     if (!this.selected) {
       this.selected = coord;
