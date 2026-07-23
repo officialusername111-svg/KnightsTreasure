@@ -1,7 +1,7 @@
 # Knight's Treasure — Match-3 Heist Pivot: Decisions & Mechanics Specification
 
-> **Status:** Authoritative for the match-3 dungeon-heist rework. Covers Phase 1 (match-3 core), Phase 2 (depletion & descent), Phase 3 (guardian & greed reaction), and Phase 4 (fog & torchlight) — Phases 5–6 (banners, memory-attacking enemies) are named where the code leaves a hook for them, not designed here. Supersedes `docs/superpowers/specs/archive/2026-06-21-knights-treasure-design-decisions.md` (the memory-match design) for everything except the still-active asset-production docs (asset manifest, prompt packs, character prompts — see `docs/superpowers/specs/`, not archived).
-> **Date:** 2026-07-23 (Parts A–E), 2026-07-23 addendum (Part F, Phase 3), 2026-07-23 addendum (Part G, Phase 4) · **Owner review:** Part F's and Part G's mechanics + UI mockups approved live in chat before implementation. Everything below is my execution of the owner's calls, delegated per this project's own rule ("delegated ≠ silent — every decision is written down").
+> **Status:** Authoritative for the match-3 dungeon-heist rework. Covers Phase 1 (match-3 core), Phase 2 (depletion & descent), Phase 3 (guardian & greed reaction), Phase 4 (fog & torchlight), and player onboarding (first-launch tutorial + first-run coach marks) — Phases 5–6 (banners, memory-attacking enemies) are named where the code leaves a hook for them, not designed here. Supersedes `docs/superpowers/specs/archive/2026-06-21-knights-treasure-design-decisions.md` (the memory-match design) for everything except the still-active asset-production docs (asset manifest, prompt packs, character prompts — see `docs/superpowers/specs/`, not archived).
+> **Date:** 2026-07-23 (Parts A–E), 2026-07-23 addendum (Part F, Phase 3), 2026-07-23 addendum (Part G, Phase 4), 2026-07-24 addendum (Part H, onboarding) · **Owner review:** Part F's, Part G's, and Part H's mechanics + UI mockups approved live in chat before implementation. Everything below is my execution of the owner's calls, delegated per this project's own rule ("delegated ≠ silent — every decision is written down").
 
 Each decision: **D#** — the decision · **Why** · **Affects**.
 
@@ -195,6 +195,105 @@ Turns the `torchlight: boolean[][]`/`Tile.faceDown` stubs (always all-`true`/`fa
 **Decision:** `BoardView.sync()` renders a face-down cell's sprite with the reserved `tile_back.png` texture (added to the `Assets.load` preload list alongside the per-kind manifest) at a dimmed tint (`TileSprite.setDimmed(true)`, a plain PixiJS tint, not a filter); once `faceDown` flips to `false` in state, the next `sync()` swaps in the real per-kind texture and clears the tint. No reveal animation is added — consistent with how Phase 1–3 shipped their mechanics without juice/animation passes first (that's separate polish work, not required for "built & verified").
 **Why:** Matches the mockup (`mockup-phase4.html`) the owner approved in chat before this landed — a static dim/reveal swap communicates the fog-of-war clearly without adding animation-timing complexity the render layer doesn't have infrastructure for yet (`src/render/**` has no tween/sequencing system).
 **Affects:** `src/render/assetManifest.ts` (`TILE_BACK_ASSET`), `src/render/TileSprite.ts` (`setDimmed`), `src/render/BoardView.ts`.
+
+## Part H — Player onboarding: first-launch tutorial and first-run coach marks (2026-07-24)
+
+Two owner-approved mockups (chat-approved live, no requested changes) implemented as-shown:
+a 6-page modal tutorial shown on first-ever launch, and 6 non-blocking live coach marks
+that point at the real board/HUD the first time each mechanic actually happens in play.
+
+### D25 — `MatchEvent` observer hook, not a stored/replayed event log
+**Decision:** `resolveMatches(state, onEvent?)` and `swap(state, a, b, onEvent?)` gained an
+optional trailing callback, invoked once per resolved match group (`{kind:'match', role,
+tileKind, cells}`) and once per non-empty fog reveal (`{kind:'reveal', cells}` — the coords
+`revealFogNeighbors` actually flipped, which now returns them instead of `void`). Both
+params are additive and optional; every existing call site and test is unmodified and
+unaffected — confirmed via the full pre-existing 46-test suite passing unchanged.
+`GameController.handleSwapIntent` collects the events emitted during one `swap()` call into
+a local array and hands it to `OnboardingController.handleTurnEvents(events, next)` after
+the turn resolves. The events are never stored on `GameState` itself and never persisted —
+purely a same-tick notification, the same shape philosophy as D6/D7's "extension, flagged."
+**Why:** GameController diffing before/after `GameState` (comparing `guardian.hp`, `gold`,
+board cell `faceDown`) was the alternative and was rejected: it's provably wrong at the
+margin (a food match landing when `rations` is already at `maxRations` nets *negative*
+change once the per-turn drain applies, so a before/after comparison would miss a real food
+match). The observer hook reports the exact same `findMatches()` groups the game already
+computes — no new semantics, no guessing about what "a weapon match" means.
+**Affects:** `src/logic/types.ts` (`MatchEvent`), `src/logic/board.ts`
+(`revealFogNeighbors` return type), `src/logic/actions/{resolveMatches,swap}.ts`,
+`src/app/GameController.ts`.
+
+### D26 — Onboarding progress: `localStorage`, separate from (nonexistent) run-save state
+**Decision:** `src/app/onboarding/storage.ts` persists `{ tutorialSeen, coachSeen: {...6
+flags} }` to `localStorage` under `kt.onboarding.v1`, guarded with try/catch (falls back to
+"always show" on a read/write failure rather than throwing). This is deliberately not
+wired through Capacitor Preferences — CLAUDE.md already flags Preferences-based save as
+"planned," not built, and the game has **no run-state persistence at all yet** (every
+reload starts a fresh `createInitialState(Date.now())`). Onboarding "seen" flags are UI
+state, not run state, and don't need to wait on that unbuilt system.
+**Why:** Lightest mechanism that survives a page reload (the actual requirement — "fires
+once ever"), with zero new dependency and zero coupling to a save system that isn't built.
+When Preferences-backed saves land, this key can move over unchanged in shape.
+**Affects:** `src/app/onboarding/storage.ts`.
+
+### D27 — Coach-mark board anchors: screen-rect resolved via `BoardView`, not DOM
+**Decision:** `BoardView.getTileLocalRect(row, col)` (new) returns a tile's canvas-local
+CSS-pixel rect (`container.x/y + cellSize` — the same numbers `BoardView` already tracks
+for sprite layout). `OnboardingController` combines that with the canvas element's and
+stage element's `getBoundingClientRect()` to place a coach-mark bubble in stage-relative
+coordinates — mirroring exactly how the DOM-anchored marks (guardian/rations rows, gold
+chip, escape button) are positioned via `element.getBoundingClientRect()`, so both anchor
+kinds resolve to the same `CoachMarkRect` shape and `CoachMarkView` never needs to know
+whether it's pointing at a DOM element or a Pixi sprite.
+**Why:** The board is canvas-rendered (D3), so there's no DOM node to anchor a CSS tooltip
+to directly; re-deriving tile geometry from `GameState` alone (without `BoardView`'s actual
+`cellSize`/`container` offset) would drift the moment the board resizes or the row count
+changes on descend. Reusing `BoardView`'s own layout numbers guarantees the coach mark
+always points at the tile actually on screen.
+**Affects:** `src/render/BoardView.ts` (`getTileLocalRect`), `src/render/CoachMarkView.ts`,
+`src/app/onboarding/OnboardingController.ts`.
+
+### D28 — "First move" anchor: top-left tile pair, not board-center
+**Decision:** The first-move coach mark points at board cells `(0,0)`–`(0,1)` — always
+populated and always lit (Surface band, D21) at floor start — rather than a board-center
+pair as the approved mockup showed for illustration. **Owner should be aware this is a
+minor deviation from the mockup's exact visual**, made to keep the trigger a zero-lookup
+constant instead of a "find any valid adjacent pair" search; flagged here per the project's
+no-silent-assumptions rule rather than left undocumented.
+**Why:** `(0,0)`/`(0,1)` are guaranteed non-null and non-fogged on every floor by
+construction (D21), so no runtime search or fallback path is needed; a board-center pick
+would need one anyway (center cells aren't guaranteed non-null once matches start clearing
+tiles, though they always are at the exact moment this fires — turn 0).
+**Affects:** `src/app/onboarding/OnboardingController.ts` (`maybeShowFirstMove`).
+
+### D29 — Escape-reminder threshold: 30% guardian HP, a new constant (not derived)
+**Decision:** The "you can always escape" coach mark fires the first time
+`guardian.hp / guardian.maxHp` drops below `0.3`, checked on every turn via
+`OnboardingController.handleTurnEvents` → `checkEscapeReminder`. `0.3` is a new standalone
+constant local to `OnboardingController`, not derived from `GUARDIAN_BALANCE` (rage/armor
+thresholds are on a 0-10 rage scale unrelated to hp fraction).
+**Why:** The approved mockup specified "~30%" without tying it to an existing balance
+number; 30% reliably lands after real play (guardian hp only drops via weapon matches) and
+reuses no existing constant because none of `GUARDIAN_BALANCE`'s thresholds are hp-fraction
+based — inventing a fraction-based field there for a UI-only trigger would be scope creep
+into the balance data the onboarding feature doesn't own.
+**Affects:** `src/app/onboarding/OnboardingController.ts`.
+
+### D30 — Modal focus/inert management added beyond the mockup (accessibility)
+**Decision:** `#tutorial-overlay` carries a static `inert` attribute in `index.html`,
+toggled off by `TutorialView.open()` and back on by `dismiss()` — on top of the mockup's
+opacity/pointer-events toggle. `open()` also focuses the Next button and installs a
+keydown handler (Escape dismisses; Tab/Shift+Tab wrap within the card, a manual focus trap
+since no native `<dialog>` was used — the card already needed custom paginated-modal
+behavior `<dialog>` doesn't give for free). Verified live: without `inert`, a dismissed
+overlay's buttons stayed in the tab order and the accessibility tree (caught via direct DOM
+inspection in the browser, since the modal's own opacity:0/pointer-events:none hid it only
+visually).
+**Why:** The mockup was a visual/behavioral approval artifact, not an accessibility
+spec — `design-me`'s standing a11y bar (keyboard operability, focus management, no
+perceivable-but-invisible interactive elements) applies regardless of what the mockup
+happened to show, per this project's own design-engineering conventions.
+**Affects:** `index.html` (`inert` attribute), `src/render/TutorialView.ts`.
 
 ### Open edge case, accepted (not fixed in this pass)
 Axe's shatter effect (D12) nulls one adjacent tile directly (`weaponEffects.ts`) without going through `resolveMatches`' match-group loop, so a shattered tile's removal never itself triggers `revealFogNeighbors`. In a specific unlucky sequence — every boundary-row tile between Surface and Relic disappearing via shatter rather than ever being a match's own cell — the Relic band directly below could in theory stay fully fogged (and therefore fully inert, D22) after Surface fully clears, stalling further matches on that floor. This is judged low-probability (shatter removes one non-participating tile per Axe swing; the swing's own match still triggers a reveal for its own neighbors) and is accepted rather than special-cased, on the same reasoning D9 already accepts for board depletion generally: this project has never guaranteed a floor stays solvable move-to-move (no "at least one valid move" check exists for Phase 1–3 either), and adding one now would be scope beyond what Phase 4 asked for. Flagged here for the record, not silently ignored, per this project's own no-assumptions rule.
