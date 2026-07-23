@@ -61,6 +61,7 @@ export class HudView {
 
     const isOver = state.status !== 'playing';
     this.escapeBtn.style.display = isOver ? 'none' : '';
+    this.escapeBtn.textContent = `🏃 Escape with loot (${state.gold}g)`;
 
     this.banner.classList.toggle('visible', isOver);
     this.banner.classList.toggle('victory', state.status === 'escaped');
